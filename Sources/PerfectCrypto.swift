@@ -17,4 +17,15 @@
 //===----------------------------------------------------------------------===//
 //
 
+public enum PerfectCrypto {
+	public static var isInitialized: Bool = {
+		return OpenSSLInternal.isInitialized
+	}()
+}
+
+public struct CryptoError: Error {
+	public let code: Int
+	public let msg: String
+}
+
 
