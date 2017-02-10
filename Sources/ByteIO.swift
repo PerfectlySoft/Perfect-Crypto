@@ -33,13 +33,13 @@ public protocol ByteIO {
 }
 
 public protocol ByteSink: ByteIO {
+	func put(string: UnsafePointer<Int8>) throws
 	func write(bytes: UnsafeRawBufferPointer) throws -> Int
-	func write(string: String) throws
 }
 
 public protocol ByteSource: ByteIO {
-	func readBytes(_ bytes: UnsafeMutableRawBufferPointer) throws -> Int
-	func readString(maximum: Int) throws -> String?
+	func read(_ bytes: UnsafeMutableRawBufferPointer) throws -> Int
+	func get(_ bytes: UnsafeMutableRawBufferPointer) throws -> Int
 }
 
 public protocol ByteFilter: ByteIO {
@@ -87,7 +87,7 @@ public class ByteIOBase: CustomStringConvertible {
 			} else {
 				ret.append("\(String(validatingUTF8: BIO_method_name(p)) ?? "?")")
 			}
-			ptr = p.pointee.next_bio
+			ptr = BIO_next(p)
 		}
 		return ret
 	}
@@ -114,8 +114,8 @@ public class ByteIOBase: CustomStringConvertible {
 	}
 	
 	@discardableResult
-	public func flush() -> Self {
-		BIO_ctrl(head, BIO_CTRL_FLUSH, 0, nil)
+	public func flush() throws -> Self {
+		try checkedResult(BIO_ctrl(head, BIO_CTRL_FLUSH, 0, nil))
 		return self
 	}
 	
@@ -131,6 +131,11 @@ public class ByteIOBase: CustomStringConvertible {
 		return BIO_ctrl_wpending(head)
 	}
 	
+	public func setNonBlocking() {
+		BIO_ctrl(bio, BIO_C_SET_NBIO, 1, nil)
+	}
+	
+	@discardableResult
 	public func chain<T: ByteIOBase>(_ next: T) -> T {
 		next.prev = self
 		next.head = self.head
@@ -144,6 +149,7 @@ public class ByteIOBase: CustomStringConvertible {
 		try checkedResult(BIO_ctrl(bio, BIO_C_MAKE_BIO_PAIR, 0, with.bio))
 	}
 	
+	@discardableResult
 	public func detach() -> Self {
 		BIO_pop(bio)
 		head = bio
@@ -166,11 +172,8 @@ public class ByteIOBase: CustomStringConvertible {
 }
 
 extension ByteSink where Self: ByteIOBase {
-	public func write(string: String) throws {
-		try checkedResult(string.withCString {
-			ptr in
-			return Int(BIO_puts(head, ptr))
-		})
+	public func put(string: UnsafePointer<Int8>) throws {
+		try checkedResult(Int(BIO_puts(head, string)))
 	}
 	
 	public func write(bytes: UnsafeRawBufferPointer) throws -> Int {
@@ -179,19 +182,15 @@ extension ByteSink where Self: ByteIOBase {
 }
 
 extension ByteSource where Self: ByteIOBase {
-	public func readBytes(_ bytes: UnsafeMutableRawBufferPointer) throws -> Int {
+	public func read(_ bytes: UnsafeMutableRawBufferPointer) throws -> Int {
 		let result = try checkedResult(BIO_read(head, bytes.baseAddress, Int32(bytes.count)))
 		return result
 	}
 	
-	public func readString(maximum: Int = 4096) throws -> String? {
-		let p = UnsafeMutableRawBufferPointer.allocate(count: maximum)
-		defer {
-			p.deallocate()
-		}
-		let result = try checkedResult(BIO_gets(head, p.baseAddress?.assumingMemoryBound(to: Int8.self), Int32(maximum-1)))
-		p[Int(result)] = 0
-		return String(validatingUTF8: p.baseAddress!.assumingMemoryBound(to: Int8.self))
+	public func get(_ bytes: UnsafeMutableRawBufferPointer) throws -> Int {
+		let result = try checkedResult(BIO_gets(head, bytes.baseAddress?.assumingMemoryBound(to: Int8.self), Int32(bytes.count-1)))
+		bytes[result] = 0
+		return result
 	}
 }
 
@@ -220,7 +219,7 @@ public class IOPair {
 public class MemoryIO: ByteIOBase, ByteSink, ByteSource {
 	var memory: UnsafeRawBufferPointer? {
 		var m: UnsafePointer<Int8>? = nil
-		let count = BIO_ctrl(head, BIO_CTRL_INFO, 0, &m)
+		let count = BIO_ctrl(bio, BIO_CTRL_INFO, 0, &m)
 		guard let mm = m else {
 			return nil
 		}
@@ -353,8 +352,15 @@ public class BufferFilter: ByteIOBase {
 	}
 }
 
+public class DigestFilter: ByteIOBase, ByteSource {
+	public init(_ digest: Digest) {
+		super.init(method: BIO_f_md())
+		let p = digest.evp
+		BIO_ctrl(bio, BIO_C_SET_MD, 1, UnsafeMutableRawPointer(mutating: p))
+	}
+}
+
 public class CipherFilter: ByteIOBase {
-	public static let minimumBufferSize = 4096
 	public init(_ cipher: Cipher, key: UnsafePointer<UInt8>, iv: UnsafePointer<UInt8>, encrypting: Bool) {
 		super.init(bio: BIO_new(BIO_f_cipher()))
 		BIO_set_cipher(bio, cipher.evp, key, iv, encrypting ? 1 : 0)
