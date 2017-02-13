@@ -42,6 +42,124 @@ extension CryptoError {
 	}
 }
 
+extension Encoding {
+	func encodeBytes(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		switch self {
+		case .base64:
+			return toBytesBase64(source)
+		case .hex:
+			return toBytesHex(source)
+		}
+	}
+	
+	func decodeBytes(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		switch self {
+		case .base64:
+			return fromBytesBase64(source)
+		case .hex:
+			return fromBytesHex(source)
+		}
+	}
+	
+	private func toBytesBase64(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		let chain = Base64Filter().chain(MemoryIO())
+		do {
+			_ = try chain.write(bytes: source)
+			try chain.flush()
+			let length = chain.readPending
+			guard let memory = chain.memory else {
+				return nil
+			}
+			let ret = UnsafeMutableRawBufferPointer.allocate(count: length)
+			ret.copyBytes(from: memory)
+			return ret
+		} catch {
+		
+		}
+		return nil
+	}
+	
+	private func fromBytesBase64(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		let chain = Base64Filter().chain(MemoryIO(source))
+		do {
+			let ret = UnsafeMutableRawBufferPointer.allocate(count: source.count)
+			let count = try chain.read(ret)
+			return UnsafeMutableRawBufferPointer(start: ret.baseAddress, count: count)
+		} catch {
+			
+		}
+		return nil
+	}
+	
+	private func toBytesHex(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		let sourceCount = source.count
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: sourceCount * 2)
+		var ri = 0
+		for i in 0..<sourceCount {
+			let byte = source[i]
+			let b1 = byte >> 4
+			let b2 = byte & 0x0F
+			let nb1 = b1 > 9 ? b1 - 10 + 97 : b1 + 48
+			let nb2 = b2 > 9 ? b2 - 10 + 97 : b2 + 48
+			ret[ri] = nb1
+			ret[ri+1] = nb2
+			ri += 2
+		}
+		return ret
+	}
+	
+	private func fromBytesHex(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		let sourceCount = source.count
+		guard sourceCount % 2 == 0 else {
+			return nil
+		}
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: sourceCount / 2)
+		var ri = 0
+		for index in stride(from: source.startIndex, to: source.endIndex, by: 2) {
+			guard let c = UInt8(hexOne: source[index], hexTwo: source[index+1]) else {
+				return nil
+			}
+			ret[ri] = c
+			ri += 1
+		}
+		return ret
+	}
+	
+	private func byteFromHexDigits(one c1v: UInt8, two c2v: UInt8) -> UInt8? {
+		
+		let capA: UInt8 = 65
+		let capF: UInt8 = 70
+		let lowA: UInt8 = 97
+		let lowF: UInt8 = 102
+		let zero: UInt8 = 48
+		let nine: UInt8 = 57
+		
+		var newChar = UInt8(0)
+		
+		if c1v >= capA && c1v <= capF {
+			newChar = c1v - capA + 10
+		} else if c1v >= lowA && c1v <= lowF {
+			newChar = c1v - lowA + 10
+		} else if c1v >= zero && c1v <= nine {
+			newChar = c1v - zero
+		} else {
+			return nil
+		}
+		
+		newChar *= 16
+		
+		if c2v >= capA && c2v <= capF {
+			newChar += c2v - capA + 10
+		} else if c2v >= lowA && c2v <= lowF {
+			newChar += c2v - lowA + 10
+		} else if c2v >= zero && c2v <= nine {
+			newChar += c2v - zero
+		} else {
+			return nil
+		}
+		return newChar
+	}
+}
 
 extension Digest {
 	func bio() -> UnsafePointer<BIO>? {

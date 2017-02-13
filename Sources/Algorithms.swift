@@ -19,6 +19,7 @@
 
 public enum Encoding {
 	case base64
+	case hex
 }
 
 public enum Digest {

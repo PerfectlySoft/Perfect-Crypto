@@ -11,14 +11,58 @@ class PerfectCryptoTests: XCTestCase {
 		XCTAssert(PerfectCrypto.isInitialized)
 	}
 	
-	func testHexEncDec() {
+	func testHexEncDec1() {
 		let testStr = "Hello, world!"
-		let hexStr = testStr.withBufferPointer { $0.encodeHex }
-		XCTAssert(hexStr == "48656c6c6f2c20776f726c6421")
-		guard let unHex = hexStr.decodeHex else {
+		guard let hexBytes = Array(testStr.utf8).encode(.hex) else {
 			return XCTAssert(false)
 		}
-		XCTAssert(unHex == Array(testStr.utf8))
+		XCTAssert(String(validatingUTF8: hexBytes) == "48656c6c6f2c20776f726c6421")
+		guard let unHex = hexBytes.decode(.hex) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(String(validatingUTF8: unHex) == testStr)
+	}
+	
+	func test64EncDec1() {
+		let testStr = "Hello, world!"
+		guard let baseBytes = Array(testStr.utf8).encode(.base64) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(String(validatingUTF8: baseBytes) == "SGVsbG8sIHdvcmxkIQ==")
+		guard let unHex = baseBytes.decode(.base64) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(String(validatingUTF8: unHex) == testStr)
+	}
+	
+	func testHexEncDec2() {
+		let testStr = "Hello, world!"
+		guard let hexBytes = Array(testStr.utf8).encode(.hex) else {
+			return XCTAssert(false)
+		}
+		guard let s = String(validatingUTF8: hexBytes) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(s == "48656c6c6f2c20776f726c6421")
+		guard let unHex = s.decode(.hex) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(String(validatingUTF8: unHex) == testStr)
+	}
+	
+	func test64EncDec2() {
+		let testStr = "Hello, world!"
+		guard let baseBytes = Array(testStr.utf8).encode(.base64) else {
+			return XCTAssert(false)
+		}
+		guard let s = String(validatingUTF8: baseBytes) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(s == "SGVsbG8sIHdvcmxkIQ==")
+		guard let unHex = s.decode(.base64) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(String(validatingUTF8: unHex) == testStr)
 	}
 	
 	func testIOPair() {
@@ -58,7 +102,7 @@ class PerfectCryptoTests: XCTestCase {
 			}
 			let result = try chain.flush().read(dest)
 			
-			XCTAssert(String(UnsafeRawBufferPointer(start: dest.baseAddress, count: result)) == testStr)
+			XCTAssert(String(validatingUTF8: UnsafeRawBufferPointer(start: dest.baseAddress, count: result)) == testStr)
 		} catch {
 			XCTAssert(false, "\(error)")
 		}
@@ -77,7 +121,7 @@ class PerfectCryptoTests: XCTestCase {
 			XCTAssert(wrote == count)
 			let result = try chain.flush().memory
 			XCTAssert(result?.count == testAnswer.utf8.count)
-			let resultString = String(result)
+			let resultString = String(validatingUTF8: result)
 			XCTAssert(testAnswer == resultString)
 		} catch {
 			XCTAssert(false, "\(error)")
@@ -101,8 +145,13 @@ class PerfectCryptoTests: XCTestCase {
 			
 			let resultLen = try digest.get(dest)
 			let digestBytes = UnsafeRawBufferPointer(start: dest.baseAddress, count: resultLen)
-			let hexString = digestBytes.encodeHex
-			XCTAssert(testAnswer == hexString, "\(hexString)")
+			guard let hexString = digestBytes.encode(.hex) else {
+				return XCTAssert(false)
+			}
+			defer {
+				hexString.deallocate()
+			}
+			XCTAssert(testAnswer == String(validatingUTF8: UnsafeRawBufferPointer(hexString)), "\(hexString)")
 		} catch {
 			XCTAssert(false, "\(error)")
 		}

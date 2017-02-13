@@ -18,12 +18,15 @@
 //
 //
 
-extension String {
-	init?(_ ptr: UnsafeRawBufferPointer?) {
+public extension String {
+	init?(validatingUTF8 ptr: UnsafeRawBufferPointer?) {
 		guard let ptr = ptr else {
 			return nil
 		}
 		self = UTF8Encoding.encode(generator: ptr.makeIterator())
+	}
+	init?(validatingUTF8 a: [UInt8]) {
+		self = UTF8Encoding.encode(generator: a.makeIterator())
 	}
 	
 	func withBufferPointer<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
@@ -31,40 +34,53 @@ extension String {
 		let count = chars.count
 		return try body(UnsafeRawBufferPointer(start: UnsafePointer(chars), count: count))
 	}
-	
-	var decodeHex: [UInt8]? {
-		let chars = Array(self.utf8)
-		guard chars.count % 2 == 0 else {
+}
+
+public extension String {
+	func decode(_ encoding: Encoding) -> [UInt8]? {
+		guard let newPtr = withBufferPointer({ encoding.decodeBytes($0) }) else {
 			return nil
 		}
-		
-		var ret = [UInt8]()
-		for index in stride(from: chars.startIndex, to: chars.endIndex, by: 2) {
-			guard let c = UInt8(hexOne: chars[index], hexTwo: chars[index+1]) else {
-				return nil
-			}
-			ret.append(c)
-		}
-		return ret
+		defer { newPtr.deallocate() }
+		return newPtr.map { $0 }
 	}
 }
 
-extension Collection where Self.Iterator.Element == UInt8 {
-	var encodeHex: String {
-		var s = ""
-		for byte in self {
-			let b = byte >> 4
-			s.append(String(Character(UnicodeScalar(b > 9 ? b - 10 + 97 : b + 48))))
-			let b2 = byte & 0x0F
-			s.append(String(Character(UnicodeScalar(b2 > 9 ? b2 - 10 + 97 : b2 + 48))))
+public protocol Octal {}
+extension UInt8: Octal {}
+
+public extension Array where Element: Octal {
+	func encode(_ encoding: Encoding) -> [UInt8]? {
+		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
+		guard let newPtr = encoding.encodeBytes(ptr) else {
+			return nil
 		}
-		return s
+		defer { newPtr.deallocate() }
+		return newPtr.map { $0 }
+	}
+	
+	func decode(_ encoding: Encoding) -> [UInt8]? {
+		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
+		guard let newPtr = encoding.decodeBytes(ptr) else {
+			return nil
+		}
+		defer { newPtr.deallocate() }
+		return newPtr.map { $0 }
+	}
+}
+
+public extension UnsafeRawBufferPointer {
+	func encode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer? {
+		return encoding.encodeBytes(self)
+	}
+	
+	func decode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer? {
+		return encoding.decodeBytes(self)
 	}
 }
 
 extension UInt8 {
 	init?(hexOne c1v: UInt8, hexTwo c2v: UInt8) {
-		
 		let capA: UInt8 = 65
 		let capF: UInt8 = 70
 		let lowA: UInt8 = 97
