@@ -186,6 +186,9 @@ extension Digest {
 		case .custom(let name):	  return EVP_get_digestbyname(name)
 		}
 	}
+	var length: Int {
+		return Int(evp.pointee.md_size)
+	}
 }
 
 extension Cipher {

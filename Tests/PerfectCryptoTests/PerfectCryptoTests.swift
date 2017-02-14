@@ -157,9 +157,23 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
+	func testDigest2() {
+		let testStr = "Hello, world!"
+		let testAnswer = "315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3"
+		guard let enc = testStr.digest(.sha256)?.encode(.hex) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(String(validatingUTF8: enc) == testAnswer)
+	}
+	
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
+			("testIOPair", testIOPair),
+			("testHexEncDec1", testHexEncDec1),
+			("test64EncDec1", test64EncDec1),
+			("testHexEncDec2", testHexEncDec2),
+			("test64EncDec2", test64EncDec2),
 			("testIOPair", testIOPair),
 			("testBase64Filter1", testBase64Filter1),
 			("testBase64Filter2", testBase64Filter2),

@@ -17,11 +17,13 @@
 //===----------------------------------------------------------------------===//
 //
 
+/// Available encoding methods.
 public enum Encoding {
 	case base64
 	case hex
 }
 
+/// Available digest methods.
 public enum Digest {
 	case md4
 	case md5
@@ -40,6 +42,7 @@ public enum Digest {
 	case custom(String)
 }
 
+/// Available ciphers.
 public enum Cipher {
 	case des_ecb
 	case des_ede

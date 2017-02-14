@@ -19,16 +19,23 @@
 //
 
 public extension String {
+	/// Construct a string from a UTF8 character pointer.
+	/// Character data does not need to be null terminated.
+	/// The buffer's count indicates how many characters are to be converted.
+	/// Returns nil if the data is invalid.
 	init?(validatingUTF8 ptr: UnsafeRawBufferPointer?) {
 		guard let ptr = ptr else {
 			return nil
 		}
 		self = UTF8Encoding.encode(generator: ptr.makeIterator())
 	}
+	/// Construct a string from a UTF8 character array.
+	/// The array's count indicates how many characters are to be converted.
+	/// Returns nil if the data is invalid.
 	init?(validatingUTF8 a: [UInt8]) {
 		self = UTF8Encoding.encode(generator: a.makeIterator())
 	}
-	
+	/// Obtain a buffer pointer for the String's UTF8 characters.
 	func withBufferPointer<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
 		let chars = [UInt8](self.utf8)
 		let count = chars.count
@@ -37,12 +44,19 @@ public extension String {
 }
 
 public extension String {
+	/// Decode the String into an array of bytes using the indicated encoding.
+	/// The string's UTF8 characters are decoded.
 	func decode(_ encoding: Encoding) -> [UInt8]? {
-		guard let newPtr = withBufferPointer({ encoding.decodeBytes($0) }) else {
-			return nil
-		}
-		defer { newPtr.deallocate() }
-		return newPtr.map { $0 }
+		return Array(utf8).decode(encoding)
+	}
+	/// Encode the String into an array of bytes using the indicated encoding.
+	/// The string's UTF8 characters are decoded.
+	func encode(_ encoding: Encoding) -> [UInt8]? {
+		return Array(utf8).encode(encoding)
+	}
+	/// Perform the digest algorithm on the String's UTF8 bytes
+	func digest(_ digest: Digest) -> [UInt8]? {
+		return Array(utf8).digest(digest)
 	}
 }
 
@@ -50,18 +64,28 @@ public protocol Octal {}
 extension UInt8: Octal {}
 
 public extension Array where Element: Octal {
+	/// Encode the Array into An array of bytes using the indicated encoding.
 	func encode(_ encoding: Encoding) -> [UInt8]? {
 		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
-		guard let newPtr = encoding.encodeBytes(ptr) else {
+		guard let newPtr = ptr.encode(encoding) else {
 			return nil
 		}
 		defer { newPtr.deallocate() }
 		return newPtr.map { $0 }
 	}
-	
+	/// Decode the Array into an array of bytes using the indicated encoding.
 	func decode(_ encoding: Encoding) -> [UInt8]? {
 		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
-		guard let newPtr = encoding.decodeBytes(ptr) else {
+		guard let newPtr = ptr.decode(encoding) else {
+			return nil
+		}
+		defer { newPtr.deallocate() }
+		return newPtr.map { $0 }
+	}
+	/// Digest the Array data into an array of bytes using the indicated algorithm.
+	func digest(_ digest: Digest) -> [UInt8]? {
+		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
+		guard let newPtr = ptr.digest(digest) else {
 			return nil
 		}
 		defer { newPtr.deallocate() }
@@ -70,12 +94,35 @@ public extension Array where Element: Octal {
 }
 
 public extension UnsafeRawBufferPointer {
+	/// Encode the buffer using the indicated encoding.
+	/// The return value must be deallocated by the caller.
 	func encode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer? {
 		return encoding.encodeBytes(self)
 	}
-	
+	/// Decode the buffer using the indicated encoding.
+	/// The return value must be deallocated by the caller.
 	func decode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer? {
 		return encoding.decodeBytes(self)
+	}
+	/// Digest the buffer using the indicated algorithm.
+	/// The return value must be deallocated by the caller.
+	func digest(_ digest: Digest) -> UnsafeMutableRawBufferPointer? {
+		let filter = DigestFilter(digest)
+		let chain = filter.chain(NullIO())
+		do {
+			_ = try chain.write(bytes: self)
+			try chain.flush()
+			let validLength = digest.length
+			let ret = UnsafeMutableRawBufferPointer.allocate(count: validLength)
+			guard try filter.get(ret) == validLength else {
+				ret.deallocate()
+				return nil
+			}
+			return ret
+		} catch {
+			
+		}
+		return nil
 	}
 }
 
