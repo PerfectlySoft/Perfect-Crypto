@@ -13,7 +13,7 @@ class PerfectCryptoTests: XCTestCase {
 	
 	func testHexEncDec1() {
 		let testStr = "Hello, world!"
-		guard let hexBytes = Array(testStr.utf8).encode(.hex) else {
+		guard let hexBytes = testStr.encode(.hex) else {
 			return XCTAssert(false)
 		}
 		XCTAssert(String(validatingUTF8: hexBytes) == "48656c6c6f2c20776f726c6421")
