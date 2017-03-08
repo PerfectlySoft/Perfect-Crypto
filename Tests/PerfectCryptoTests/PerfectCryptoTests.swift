@@ -166,6 +166,98 @@ class PerfectCryptoTests: XCTestCase {
 		XCTAssert(String(validatingUTF8: enc) == testAnswer)
 	}
 	
+	func testCipherSizes() {
+		let algo = Cipher.des_ede3_cbc
+		let bs = algo.blockSize
+		let kl = algo.keyLength
+		let il = algo.ivLength
+		
+		XCTAssert(bs == 8)
+		XCTAssert(kl == 24)
+		XCTAssert(il == 8)
+	}
+	
+	func testRandomBuffer1() {
+		guard let buff = UnsafeMutableRawBufferPointer.allocateRandom(count: 2048) else {
+			return XCTAssert(false)
+		}
+		defer {
+			buff.deallocate()
+		}
+		XCTAssert(buff.count == 2048)
+		
+		guard let enc = UnsafeRawBufferPointer(buff).encode(.hex) else {
+			return XCTAssert(false)
+		}
+		defer {
+			enc.deallocate()
+		}
+//		print("\(String(validatingUTF8: UnsafeRawBufferPointer(enc)))")
+	}
+	
+	func testRandomBuffer2() {
+		let buff = [UInt8](randomCount: 2048)
+		let buff2 = [UInt8](randomCount: 2048)
+		
+		XCTAssert(buff != buff2)
+		
+//		guard let hexd = buff.encode(.hex) else {
+//			return XCTAssert(false)
+//		}
+//		print("\(String(validatingUTF8: hexd))")
+	}
+	
+	func testCipher1() {
+		let cipher = Cipher.aes_256_cbc
+		guard let random = UnsafeRawBufferPointer.allocateRandom(count: 2048),
+			  let key = UnsafeRawBufferPointer.allocateRandom(count: cipher.keyLength),
+			  let iv = UnsafeRawBufferPointer.allocateRandom(count: cipher.ivLength) else {
+			return XCTAssert(false)
+		}
+		defer {
+			random.deallocate()
+			key.deallocate()
+			iv.deallocate()
+		}
+		
+		guard let encrypted = random.encrypt(cipher, key: key, iv: iv) else {
+			return XCTAssert(false)
+		}
+		defer {
+			encrypted.deallocate()
+		}
+		
+		let encryptedRaw = UnsafeRawBufferPointer(encrypted)
+		guard let decrypted = encryptedRaw.decrypt(cipher, key: key, iv: iv) else {
+			return XCTAssert(false)
+		}
+		defer {
+			decrypted.deallocate()
+		}
+		
+		XCTAssert(decrypted.count == random.count)
+		for (a, b) in zip(decrypted, random) {
+			XCTAssert(a == b)
+		}
+	}
+	
+	func testCipher2() {
+		let cipher = Cipher.aes_256_cbc
+		let random = [UInt8](randomCount: 2048)
+		let key = [UInt8](randomCount: cipher.keyLength)
+		let iv = [UInt8](randomCount: cipher.ivLength)
+		guard let encrypted = random.encrypt(cipher, key: key, iv: iv) else {
+			return XCTAssert(false)
+		}
+		guard let decrypted = encrypted.decrypt(cipher, key: key, iv: iv) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(decrypted.count == random.count)
+		for (a, b) in zip(decrypted, random) {
+			XCTAssert(a == b)
+		}
+	}
+	
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -178,6 +270,12 @@ class PerfectCryptoTests: XCTestCase {
 			("testBase64Filter1", testBase64Filter1),
 			("testBase64Filter2", testBase64Filter2),
 			("testDigest1", testDigest1),
+			("testDigest2", testDigest2),
+			("testCipherSizes", testCipherSizes),
+			("testRandomBuffer1", testRandomBuffer1),
+			("testRandomBuffer2", testRandomBuffer2),
+			("testCipher1", testCipher1),
+			("testCipher2", testCipher2)
 		]
 	}
 }

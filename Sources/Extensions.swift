@@ -64,6 +64,14 @@ public protocol Octal {}
 extension UInt8: Octal {}
 
 public extension Array where Element: Octal {
+	
+	/// Creates a new array containing the specified number of a single random values.
+	public init(randomCount count: Int) {
+		self.init(repeating: UInt8(0) as! Element, count: count)
+		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &self, count: count))
+		p.initializeRandom()
+	}
+	
 	/// Encode the Array into An array of bytes using the indicated encoding.
 	func encode(_ encoding: Encoding) -> [UInt8]? {
 		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
@@ -91,9 +99,70 @@ public extension Array where Element: Octal {
 		defer { newPtr.deallocate() }
 		return newPtr.map { $0 }
 	}
+	
+	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	func encrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
+		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
+		let keyv = UnsafeRawBufferPointer(start: key, count: key.count)
+		let ivv = UnsafeRawBufferPointer(start: iv, count: iv.count)
+		guard let v = cipher.encrypt(sv, key: keyv, iv: ivv) else {
+			return nil
+		}
+		defer {
+			v.deallocate()
+		}
+		return v.map { UInt8($0) }
+	}
+	
+	/// Encrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	func decrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
+		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
+		let keyv = UnsafeRawBufferPointer(start: key, count: key.count)
+		let ivv = UnsafeRawBufferPointer(start: iv, count: iv.count)
+		guard let v = cipher.decrypt(sv, key: keyv, iv: ivv) else {
+			return nil
+		}
+		defer {
+			v.deallocate()
+		}
+		return v.map { UInt8($0) }
+	}
+}
+
+public extension UnsafeMutableRawBufferPointer {
+	/// Allocate memory for `size` bytes with word alignment from the encryption library's
+	///	random number generator.
+	///
+	/// - Postcondition: The memory is allocated and initialized to random bits.
+	public static func allocateRandom(count size: Int) -> UnsafeMutableRawBufferPointer? {
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: size)
+		guard 1 == internal_RAND_bytes(into: ret) else {
+			ret.deallocate()
+			return nil
+		}
+		return ret
+	}
+	
+	/// Initialize the buffer with random bytes.
+	public func initializeRandom() {
+		_ = internal_RAND_bytes(into: self)
+	}
 }
 
 public extension UnsafeRawBufferPointer {
+	/// Allocate memory for `size` bytes with word alignment from the encryption library's
+	///	random number generator.
+	///
+	/// - Postcondition: The memory is allocated and initialized to random bits.
+	public static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? {
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: size)
+		guard 1 == internal_RAND_bytes(into: ret) else {
+			ret.deallocate()
+			return nil
+		}
+		return UnsafeRawBufferPointer(ret)
+	}
+	
 	/// Encode the buffer using the indicated encoding.
 	/// The return value must be deallocated by the caller.
 	func encode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer? {
@@ -123,6 +192,18 @@ public extension UnsafeRawBufferPointer {
 			
 		}
 		return nil
+	}
+	
+	/// Encrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func encrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		return cipher.encrypt(self, key: key, iv: iv)
+	}
+	
+	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func decrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		return cipher.decrypt(self, key: key, iv: iv)
 	}
 }
 

@@ -18,6 +18,11 @@
 //
 
 import COpenSSL
+#if os(macOS)
+	import Darwin
+#else
+	import SwiftGlibc
+#endif
 
 struct OpenSSLInternal {
 	static var isInitialized: Bool = {
@@ -161,6 +166,13 @@ extension Encoding {
 	}
 }
 
+func internal_RAND_bytes(into: UnsafeMutableRawBufferPointer) -> Int {
+	guard let p = into.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
+		return 0
+	}
+	return Int(RAND_bytes(p, Int32(into.count)))
+}
+
 extension Digest {
 	func bio() -> UnsafePointer<BIO>? {
 		let md = self.evp
@@ -290,6 +302,110 @@ extension Cipher {
 		case .seed_ofb:			return EVP_seed_ofb()
 		case .custom(let name):	  return EVP_get_cipherbyname(name)
 		}
+	}
+	
+	public var blockSize: Int {
+		return Int(evp.pointee.block_size)
+	}
+	
+	public var keyLength: Int {
+		return Int(evp.pointee.key_len)
+	}
+	
+	public var ivLength: Int {
+		return Int(evp.pointee.iv_len)
+	}
+	
+	func encryptLength(sourceCount l: Int) -> Int {
+		return l + (self.blockSize - l % self.blockSize)
+	}
+	
+	func decryptLength(sourceCount l: Int) -> Int {
+		return l
+	}
+	
+	func encrypt(_ data: UnsafeRawBufferPointer, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		guard let ctx = EVP_CIPHER_CTX_new(),
+			let keyBase = key.baseAddress,
+			let ivBase = iv.baseAddress else {
+			return nil
+		}
+		defer {
+			EVP_CIPHER_CTX_free(ctx)
+		}
+		guard 1 == EVP_EncryptInit_ex(ctx, self.evp, nil,
+		                              keyBase.assumingMemoryBound(to: UInt8.self),
+		                              ivBase.assumingMemoryBound(to: UInt8.self)) else {
+			return nil
+		}
+		let allocLength = encryptLength(sourceCount: data.count)
+		let dstPtr = UnsafeMutableRawBufferPointer.allocate(count: allocLength)
+		var wroteLength = Int32(0)
+		guard 1 == EVP_EncryptUpdate(ctx,
+		                             dstPtr.baseAddress?.assumingMemoryBound(to: UInt8.self),
+		                             &wroteLength,
+		                             data.baseAddress?.assumingMemoryBound(to: UInt8.self),
+		                             Int32(data.count)) else {
+			dstPtr.deallocate()
+			return nil
+		}
+		let owroteLength = Int(wroteLength)
+		guard 1 == EVP_EncryptFinal(ctx,
+		                            dstPtr.baseAddress?.assumingMemoryBound(to: UInt8.self).advanced(by: Int(wroteLength)),
+		                            &wroteLength) else {
+			dstPtr.deallocate()
+			return nil
+		}
+		let iwroteLength = Int(wroteLength) + owroteLength
+		if iwroteLength < allocLength {
+			let newDstPtr = UnsafeMutableRawBufferPointer.allocate(count: iwroteLength)
+			memcpy(newDstPtr.baseAddress!, dstPtr.baseAddress!, iwroteLength)
+			dstPtr.deallocate()
+			return newDstPtr
+		}
+		return dstPtr
+	}
+	
+	func decrypt(_ data: UnsafeRawBufferPointer, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		guard let ctx = EVP_CIPHER_CTX_new(),
+			let keyBase = key.baseAddress,
+			let ivBase = iv.baseAddress else {
+				return nil
+		}
+		defer {
+			EVP_CIPHER_CTX_free(ctx)
+		}
+		guard 1 == EVP_DecryptInit_ex(ctx, self.evp, nil,
+		                              keyBase.assumingMemoryBound(to: UInt8.self),
+		                              ivBase.assumingMemoryBound(to: UInt8.self)) else {
+										return nil
+		}
+		let allocLength = decryptLength(sourceCount: data.count)
+		let dstPtr = UnsafeMutableRawBufferPointer.allocate(count: allocLength)
+		var wroteLength = Int32(0)
+		guard 1 == EVP_DecryptUpdate(ctx,
+		                             dstPtr.baseAddress?.assumingMemoryBound(to: UInt8.self),
+		                             &wroteLength,
+		                             data.baseAddress?.assumingMemoryBound(to: UInt8.self),
+		                             Int32(data.count)) else {
+										dstPtr.deallocate()
+										return nil
+		}
+		let owroteLength = Int(wroteLength)
+		guard 1 == EVP_DecryptFinal(ctx,
+		                            dstPtr.baseAddress?.assumingMemoryBound(to: UInt8.self).advanced(by: Int(wroteLength)),
+		                            &wroteLength) else {
+										dstPtr.deallocate()
+										return nil
+		}
+		let iwroteLength = Int(wroteLength) + owroteLength
+		if iwroteLength < allocLength {
+			let newDstPtr = UnsafeMutableRawBufferPointer.allocate(count: iwroteLength)
+			memcpy(newDstPtr.baseAddress!, dstPtr.baseAddress!, iwroteLength)
+			dstPtr.deallocate()
+			return newDstPtr
+		}
+		return dstPtr
 	}
 }
 
