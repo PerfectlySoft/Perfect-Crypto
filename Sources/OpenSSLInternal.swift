@@ -47,11 +47,19 @@ extension CryptoError {
 	}
 }
 
+private let plus = UInt8(43)
+private let dash = UInt8(45)
+private let fslash = UInt8(47)
+private let uscore = UInt8(95)
+private let equal = UInt8(61)
+
 extension Encoding {
 	func encodeBytes(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		switch self {
 		case .base64:
 			return toBytesBase64(source)
+		case .base64url:
+			return toBytesBase64URL(source)
 		case .hex:
 			return toBytesHex(source)
 		}
@@ -61,6 +69,8 @@ extension Encoding {
 		switch self {
 		case .base64:
 			return fromBytesBase64(source)
+		case .base64url:
+			return fromBytesBase64URL(source)
 		case .hex:
 			return fromBytesHex(source)
 		}
@@ -79,9 +89,8 @@ extension Encoding {
 			ret.copyBytes(from: memory)
 			return ret
 		} catch {
-		
+			return nil
 		}
-		return nil
 	}
 	
 	private func fromBytesBase64(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
@@ -91,9 +100,66 @@ extension Encoding {
 			let count = try chain.read(ret)
 			return UnsafeMutableRawBufferPointer(start: ret.baseAddress, count: count)
 		} catch {
-			
+			return nil
 		}
-		return nil
+	}
+	
+	private func toBytesBase64URL(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		let chain = Base64Filter().chain(MemoryIO())
+		do {
+			_ = try chain.write(bytes: source)
+			try chain.flush()
+			var length = chain.readPending
+			guard let memory = chain.memory else {
+				return nil
+			}
+			while length > 0 {
+				if memory[length-1] == equal {
+					length -= 1
+				} else {
+					break
+				}
+			}
+			let ret = UnsafeMutableRawBufferPointer.allocate(count: length)
+			for i in 0..<length {
+				switch memory[i] {
+				case plus:
+					ret[i] = dash
+				case fslash:
+					ret[i] = uscore
+				default:
+					ret[i] = memory[i]
+				}
+			}
+			return ret
+		} catch {
+			return nil
+		}
+	}
+	
+	private func fromBytesBase64URL(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
+		var deurled: [UInt8] = source.map {
+			switch $0 {
+			case dash:
+				return plus
+			case uscore:
+				return fslash
+			default:
+				return $0
+			}
+		}
+		for _ in 0..<(deurled.count % 4) {
+			deurled.append(equal)
+		}
+		let newPtr = UnsafeRawBufferPointer(start: deurled, count: deurled.count)
+		let chain = Base64Filter().chain(MemoryIO(newPtr))
+		do {
+			let ret = UnsafeMutableRawBufferPointer.allocate(count: deurled.count)
+			let count = try chain.read(ret)
+			return UnsafeMutableRawBufferPointer(start: ret.baseAddress, count: count)
+		} catch {
+			return nil
+		}
 	}
 	
 	private func toBytesHex(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {

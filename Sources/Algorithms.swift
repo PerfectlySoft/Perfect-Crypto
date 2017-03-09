@@ -20,6 +20,7 @@
 /// Available encoding methods.
 public enum Encoding {
 	case base64
+	case base64url
 	case hex
 }
 

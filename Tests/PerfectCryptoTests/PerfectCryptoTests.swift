@@ -35,21 +35,6 @@ class PerfectCryptoTests: XCTestCase {
 		XCTAssert(String(validatingUTF8: unHex) == testStr)
 	}
 	
-	func testHexEncDec2() {
-		let testStr = "Hello, world!"
-		guard let hexBytes = Array(testStr.utf8).encode(.hex) else {
-			return XCTAssert(false)
-		}
-		guard let s = String(validatingUTF8: hexBytes) else {
-			return XCTAssert(false)
-		}
-		XCTAssert(s == "48656c6c6f2c20776f726c6421")
-		guard let unHex = s.decode(.hex) else {
-			return XCTAssert(false)
-		}
-		XCTAssert(String(validatingUTF8: unHex) == testStr)
-	}
-	
 	func test64EncDec2() {
 		let testStr = "Hello, world!"
 		guard let baseBytes = Array(testStr.utf8).encode(.base64) else {
@@ -60,6 +45,35 @@ class PerfectCryptoTests: XCTestCase {
 		}
 		XCTAssert(s == "SGVsbG8sIHdvcmxkIQ==")
 		guard let unHex = s.decode(.base64) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(String(validatingUTF8: unHex) == testStr)
+	}
+	
+	func test64EncDec3() {
+		let testStr = "🤡 Räksmörgåsen"
+		guard let baseBytes = Array(testStr.utf8).encode(.base64url) else {
+			return XCTAssert(false)
+		}
+		let baseStr = String(validatingUTF8: baseBytes)
+		XCTAssert(baseStr == "8J-koSBSw6Rrc23DtnJnw6VzZW4", "\(baseStr)")
+		guard let unHex = baseBytes.decode(.base64url) else {
+			return XCTAssert(false)
+		}
+		let unhexed = String(validatingUTF8: unHex)
+		XCTAssert(unhexed == testStr, "\(unhexed)")
+	}
+	
+	func testHexEncDec2() {
+		let testStr = "Hello, world!"
+		guard let hexBytes = Array(testStr.utf8).encode(.hex) else {
+			return XCTAssert(false)
+		}
+		guard let s = String(validatingUTF8: hexBytes) else {
+			return XCTAssert(false)
+		}
+		XCTAssert(s == "48656c6c6f2c20776f726c6421")
+		guard let unHex = s.decode(.hex) else {
 			return XCTAssert(false)
 		}
 		XCTAssert(String(validatingUTF8: unHex) == testStr)
@@ -258,12 +272,21 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
+	func testKeyGen1() {
+		
+	}
+	
+	func testKeyRead1() {
+		
+	}
+	
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
 			("testIOPair", testIOPair),
 			("testHexEncDec1", testHexEncDec1),
 			("test64EncDec1", test64EncDec1),
+			("test64EncDec3", test64EncDec3),
 			("testHexEncDec2", testHexEncDec2),
 			("test64EncDec2", test64EncDec2),
 			("testIOPair", testIOPair),

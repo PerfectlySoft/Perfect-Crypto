@@ -194,13 +194,13 @@ public extension UnsafeRawBufferPointer {
 		return nil
 	}
 	
-	/// Encrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	/// Encrypt this buffer using the indicated cipher, key and iv (initialization vector)
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func encrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		return cipher.encrypt(self, key: key, iv: iv)
 	}
 	
-	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	/// Decrypt this buffer using the indicated cipher, key and iv (initialization vector)
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func decrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		return cipher.decrypt(self, key: key, iv: iv)
@@ -259,7 +259,6 @@ struct UEncoding {
 				encodedString.append(String(char))
 			case .emptyInput:
 				finished = true
-				/* ignore errors and unexpected values */
 			case .error:
 				finished = true
 			}

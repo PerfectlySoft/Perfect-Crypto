@@ -17,24 +17,24 @@
 //===----------------------------------------------------------------------===//
 //
 
-// EC_KEY
-// EVP_KEY
-
+import COpenSSL
 // WIP
-
+//public enum KeyType {
+//	case rsa, dsa, dh
+//}
+//
 public struct KeyPair {
-	public struct PublicKey {
-		let bytes: [UInt8]
-	}
-	public struct PrivateKey {
-		let bytes: [UInt8]
-	}
+	let pkey: UnsafePointer<EVP_PKEY>?
 	
-	var publicKey: PublicKey?
-	var privateKey: PrivateKey?
+//	public init(type: KeyType) {
+//		
+//	}
 	
-	public init(filePath: String) throws {
-		
+	public init(pemPath: String) throws {
+		let f = FileIO(name: pemPath, mode: "r")
+		var kp: UnsafeMutablePointer<EVP_PKEY>? = nil
+		PEM_read_bio_PrivateKey(f.bio, &kp, nil, nil)
+		pkey = UnsafePointer<EVP_PKEY>(kp)
 	}
 }
 
