@@ -19,6 +19,12 @@
 //
 
 public extension String {
+	/// Construct a string from a UTF8 character array.
+	/// The array's count indicates how many characters are to be converted.
+	/// Returns nil if the data is invalid.
+	init?(validatingUTF8 a: [UInt8]) {
+		self = UTF8Encoding.encode(generator: a.makeIterator())
+	}
 	/// Construct a string from a UTF8 character pointer.
 	/// Character data does not need to be null terminated.
 	/// The buffer's count indicates how many characters are to be converted.
@@ -29,12 +35,6 @@ public extension String {
 		}
 		self = UTF8Encoding.encode(generator: ptr.makeIterator())
 	}
-	/// Construct a string from a UTF8 character array.
-	/// The array's count indicates how many characters are to be converted.
-	/// Returns nil if the data is invalid.
-	init?(validatingUTF8 a: [UInt8]) {
-		self = UTF8Encoding.encode(generator: a.makeIterator())
-	}
 	/// Obtain a buffer pointer for the String's UTF8 characters.
 	func withBufferPointer<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
 		let chars = [UInt8](self.utf8)
@@ -43,20 +43,30 @@ public extension String {
 	}
 }
 
+public typealias EncodingS = Encoding
+
 public extension String {
 	/// Decode the String into an array of bytes using the indicated encoding.
 	/// The string's UTF8 characters are decoded.
-	func decode(_ encoding: Encoding) -> [UInt8]? {
+	func decode(_ encoding: EncodingS) -> [UInt8]? {
 		return Array(utf8).decode(encoding)
 	}
 	/// Encode the String into an array of bytes using the indicated encoding.
-	/// The string's UTF8 characters are decoded.
-	func encode(_ encoding: Encoding) -> [UInt8]? {
+	/// The string's UTF8 characters are encoded.
+	func encode(_ encoding: EncodingS) -> [UInt8]? {
 		return Array(utf8).encode(encoding)
 	}
 	/// Perform the digest algorithm on the String's UTF8 bytes
 	func digest(_ digest: Digest) -> [UInt8]? {
 		return Array(utf8).digest(digest)
+	}
+	/// Sign the String data into an array of bytes using the indicated algorithm and key
+	func sign(_ digest: Digest, key: Key) -> [UInt8]? {
+		return Array(utf8).sign(digest, key: key)
+	}
+	/// Verify the signature against the String data
+	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool {
+		return Array(utf8).verify(digest, signature: signature, key: key)
 	}
 }
 
@@ -64,14 +74,15 @@ public protocol Octal {}
 extension UInt8: Octal {}
 
 public extension Array where Element: Octal {
-	
 	/// Creates a new array containing the specified number of a single random values.
-	public init(randomCount count: Int) {
+	init(randomCount count: Int) {
 		self.init(repeating: UInt8(0) as! Element, count: count)
 		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &self, count: count))
 		p.initializeRandom()
 	}
-	
+}
+
+public extension Array where Element: Octal {
 	/// Encode the Array into An array of bytes using the indicated encoding.
 	func encode(_ encoding: Encoding) -> [UInt8]? {
 		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
@@ -99,7 +110,21 @@ public extension Array where Element: Octal {
 		defer { newPtr.deallocate() }
 		return newPtr.map { $0 }
 	}
-	
+	/// Sign the Array data into an array of bytes using the indicated algorithm and key
+	func sign(_ digest: Digest, key: Key) -> [UInt8]? {
+		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
+		guard let newPtr = ptr.sign(digest, key: key) else {
+			return nil
+		}
+		defer { newPtr.deallocate() }
+		return newPtr.map { $0 }
+	}
+	/// Verify the array against the signature.
+	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool {
+		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
+		let sigPtr = UnsafeRawBufferPointer(start: signature, count: signature.count)
+		return ptr.verify(digest, signature: sigPtr, key: key)
+	}
 	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector)
 	func encrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
 		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
@@ -113,7 +138,6 @@ public extension Array where Element: Octal {
 		}
 		return v.map { UInt8($0) }
 	}
-	
 	/// Encrypt this buffer using the indicated cipher, key an iv (initialization vector)
 	func decrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
 		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
@@ -134,7 +158,7 @@ public extension UnsafeMutableRawBufferPointer {
 	///	random number generator.
 	///
 	/// - Postcondition: The memory is allocated and initialized to random bits.
-	public static func allocateRandom(count size: Int) -> UnsafeMutableRawBufferPointer? {
+	static func allocateRandom(count size: Int) -> UnsafeMutableRawBufferPointer? {
 		let ret = UnsafeMutableRawBufferPointer.allocate(count: size)
 		guard 1 == internal_RAND_bytes(into: ret) else {
 			ret.deallocate()
@@ -144,7 +168,7 @@ public extension UnsafeMutableRawBufferPointer {
 	}
 	
 	/// Initialize the buffer with random bytes.
-	public func initializeRandom() {
+	func initializeRandom() {
 		_ = internal_RAND_bytes(into: self)
 	}
 }
@@ -154,7 +178,7 @@ public extension UnsafeRawBufferPointer {
 	///	random number generator.
 	///
 	/// - Postcondition: The memory is allocated and initialized to random bits.
-	public static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? {
+	static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? {
 		let ret = UnsafeMutableRawBufferPointer.allocate(count: size)
 		guard 1 == internal_RAND_bytes(into: ret) else {
 			ret.deallocate()
@@ -162,7 +186,6 @@ public extension UnsafeRawBufferPointer {
 		}
 		return UnsafeRawBufferPointer(ret)
 	}
-	
 	/// Encode the buffer using the indicated encoding.
 	/// The return value must be deallocated by the caller.
 	func encode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer? {
@@ -189,17 +212,23 @@ public extension UnsafeRawBufferPointer {
 			}
 			return ret
 		} catch {
-			
+			return nil
 		}
-		return nil
 	}
-	
+	/// Sign the buffer using the indicated algorithm and key.
+	/// The return value must be deallocated by the caller.
+	func sign(_ digest: Digest, key: Key) -> UnsafeMutableRawBufferPointer? {
+		return digest.sign(self, key: key)
+	}
+	/// Verify the signature against the buffer.
+	func verify(_ digest: Digest, signature: UnsafeRawBufferPointer, key: Key) -> Bool {
+		return digest.verify(self, signature: signature, key: key)
+	}
 	/// Encrypt this buffer using the indicated cipher, key and iv (initialization vector)
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func encrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		return cipher.encrypt(self, key: key, iv: iv)
 	}
-	
 	/// Decrypt this buffer using the indicated cipher, key and iv (initialization vector)
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func decrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
@@ -243,10 +272,9 @@ extension UInt8 {
 	}
 }
 
-/// A generalized wrapper around the Unicode codec operations.
+// A generalized wrapper around the Unicode codec operations.
 struct UEncoding {
-	
-	/// Return a String given a character generator.
+	// Return a String given a character generator.
 	static func encode<D : UnicodeCodec, G : IteratorProtocol>(codec inCodec: D, generator: G) -> String where G.Element == D.CodeUnit, G.Element == D.CodeUnit {
 		var encodedString = ""
 		var finished: Bool = false
@@ -267,25 +295,21 @@ struct UEncoding {
 	}
 }
 
-/// Utility wrapper permitting a UTF-8 character generator to encode a String. Also permits a String to be converted into a UTF-8 byte array.
+// Utility wrapper permitting a UTF-8 character generator to encode a String. Also permits a String to be converted into a UTF-8 byte array.
 struct UTF8Encoding {
-	
-	/// Use a character generator to create a String.
+	// Use a character generator to create a String.
 	static func encode<G : IteratorProtocol>(generator gen: G) -> String where G.Element == UTF8.CodeUnit {
 		return UEncoding.encode(codec: UTF8(), generator: gen)
 	}
-	
-	/// Use a character sequence to create a String.
+	// Use a character sequence to create a String.
 	static func encode<S : Sequence>(bytes byts: S) -> String where S.Iterator.Element == UTF8.CodeUnit {
 		return encode(generator: byts.makeIterator())
 	}
-	
-	/// Use a character sequence to create a String.
+	// Use a character sequence to create a String.
 	static func encode(bytes byts: [UTF8.CodeUnit]) -> String {
 		return encode(generator: UnsafeRawBufferPointer(start: UnsafeMutablePointer(mutating: byts), count: byts.count).makeIterator())
 	}
-	
-	/// Decode a String into an array of UInt8.
+	// Decode a String into an array of UInt8.
 	static func decode(string str: String) -> Array<UInt8> {
 		return [UInt8](str.utf8)
 	}

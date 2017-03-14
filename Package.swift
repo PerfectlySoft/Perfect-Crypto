@@ -28,5 +28,8 @@ import PackageDescription
 let package = Package(
     name: "PerfectCrypto",
     targets: [],
-    dependencies: [.Package(url: cOpenSSLRepo, majorVersion: 2)]
+    dependencies: [
+		.Package(url: "https://github.com/PerfectlySoft/PerfectLib.git", majorVersion: 2),
+		.Package(url: cOpenSSLRepo, majorVersion: 2)
+	]
 )

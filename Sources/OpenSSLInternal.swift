@@ -267,6 +267,66 @@ extension Digest {
 	var length: Int {
 		return Int(evp.pointee.md_size)
 	}
+	
+	func sign(_ data: UnsafeRawBufferPointer, key: Key) -> UnsafeMutableRawBufferPointer? {
+		guard let ctx = EVP_MD_CTX_create() else {
+			return nil
+		}
+		defer {
+			EVP_MD_CTX_destroy(ctx)
+		}
+		guard 1 == EVP_DigestSignInit(ctx, nil, self.evp, nil, key.pkey) else {
+			return nil
+		}
+		guard 1 == EVP_DigestUpdate(ctx, data.baseAddress, data.count) else {
+			return nil
+		}
+		var mdLen = Int(EVP_MAX_MD_SIZE)
+		guard 1 == EVP_DigestSignFinal(ctx, nil, &mdLen) else {
+			return nil
+		}
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: mdLen)
+		guard 1 == EVP_DigestSignFinal(ctx, ret.baseAddress?.assumingMemoryBound(to: UInt8.self), &mdLen) else {
+			ret.deallocate()
+			return nil
+		}
+		return ret
+	}
+	
+	
+	func verify(_ data: UnsafeRawBufferPointer, signature: UnsafeRawBufferPointer, key: Key) -> Bool {
+		
+		if key is HMACKey {
+			guard let signed = data.sign(self, key: key) else {
+				return false
+			}
+			defer {
+				signed.deallocate()
+			}
+			guard signed.count == signature.count else {
+				return false
+			}
+			return 0 == CRYPTO_memcmp(signed.baseAddress, signature.baseAddress, signed.count)
+		}
+		
+		guard let ctx = EVP_MD_CTX_create() else {
+			return false
+		}
+		defer {
+			EVP_MD_CTX_destroy(ctx)
+		}
+		guard 1 == EVP_DigestVerifyInit(ctx, nil, self.evp, nil, key.pkey) else {
+			return false
+		}
+		guard 1 == EVP_DigestUpdate(ctx, data.baseAddress, data.count) else {
+			return false
+		}
+		let mdLen = signature.count
+		guard 1 == EVP_DigestVerifyFinal(ctx, signature.baseAddress?.assumingMemoryBound(to: UInt8.self), mdLen) else {
+			return false
+		}
+		return true
+	}
 }
 
 extension Cipher {

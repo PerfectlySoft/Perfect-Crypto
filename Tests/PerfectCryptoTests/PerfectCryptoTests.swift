@@ -36,14 +36,14 @@ class PerfectCryptoTests: XCTestCase {
 	}
 	
 	func test64EncDec2() {
-		let testStr = "Hello, world!"
+		let testStr = "Räksmörgåsen"
 		guard let baseBytes = Array(testStr.utf8).encode(.base64) else {
 			return XCTAssert(false)
 		}
 		guard let s = String(validatingUTF8: baseBytes) else {
 			return XCTAssert(false)
 		}
-		XCTAssert(s == "SGVsbG8sIHdvcmxkIQ==")
+		XCTAssert(s == "UsOka3Ntw7ZyZ8Olc2Vu")
 		guard let unHex = s.decode(.base64) else {
 			return XCTAssert(false)
 		}
@@ -178,6 +178,15 @@ class PerfectCryptoTests: XCTestCase {
 			return XCTAssert(false)
 		}
 		XCTAssert(String(validatingUTF8: enc) == testAnswer)
+		
+		do {
+			let testStr = "Hello, world!"
+			if let digestBytes = testStr.digest(.sha256),
+				let hexBytes = digestBytes.encode(.hex),
+				let hexBytesStr = String(validatingUTF8: hexBytes) {
+				print(hexBytesStr)
+			}
+		}
 	}
 	
 	func testCipherSizes() {
@@ -272,12 +281,66 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
-	func testKeyGen1() {
-		
+	func testJWTVerify() {
+		let tstJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
+		let secret = "secret"
+		let name = "John Doe"
+		guard let jwt = JWTVerifier(tstJwt) else {
+			return XCTAssert(false)
+		}
+		do {
+			try jwt.verify(algo: .hs256, key: secret)
+			
+			let fndName = jwt.payload["name"] as? String
+			XCTAssert(name == fndName!)
+		} catch {
+			XCTAssert(false, "\(error)")
+		}
 	}
 	
-	func testKeyRead1() {
-		
+	func testJWTCreate1() {
+		let tstPayload = ["sub": "1234567890", "name": "John Doe", "admin": true] as [String : Any]
+		let secret = "secret"
+		let name = "John Doe"
+		guard let jwt1 = JWTCreator(payload: tstPayload) else {
+			return XCTAssert(false)
+		}
+		do {
+			let token = try jwt1.sign(alg: .hs256, key: secret)
+			
+			guard let jwt = JWTVerifier(token) else {
+				return XCTAssert(false)
+			}
+			try jwt.verify(algo: .hs256, key: HMACKey(secret))
+				
+			let fndName = jwt.payload["name"] as? String
+			XCTAssert(name == fndName!)
+		} catch {
+			XCTAssert(false, "\(error)")
+		}
+	}
+	
+	func testJWTCreate2() {
+		let tstPayload = ["sub": "1234567890", "name": "John Doe", "admin": true] as [String : Any]
+		let name = "John Doe"
+		let pubKey = "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdlatRjRjogo3WojgGHFHYLugdUWAY9iR3fy4arWNA1KoS8kVw33cJibXr8bvwUAUparCwlvdbH6dvEOfou0/gCFQsHUfQrSDv+MuSUMAe8jzKE4qW+jK+xQU9a03GUnKHkkle+Q0pX/g6jXZ7r1/xAK5Do2kQ+X5xK9cipRgEKwIDAQAB\n-----END PUBLIC KEY-----\n"
+		let privKey = "-----BEGIN RSA PRIVATE KEY-----\nMIICWwIBAAKBgQDdlatRjRjogo3WojgGHFHYLugdUWAY9iR3fy4arWNA1KoS8kVw33cJibXr8bvwUAUparCwlvdbH6dvEOfou0/gCFQsHUfQrSDv+MuSUMAe8jzKE4qW+jK+xQU9a03GUnKHkkle+Q0pX/g6jXZ7r1/xAK5Do2kQ+X5xK9cipRgEKwIDAQABAoGAD+onAtVye4ic7VR7V50DF9bOnwRwNXrARcDhq9LWNRrRGElESYYTQ6EbatXS3MCyjjX2eMhu/aF5YhXBwkppwxg+EOmXeh+MzL7Zh284OuPbkglAaGhV9bb6/5CpuGb1esyPbYW+Ty2PC0GSZfIXkXs76jXAu9TOBvD0ybc2YlkCQQDywg2R/7t3Q2OE2+yo382CLJdrlSLVROWKwb4tb2PjhY4XAwV8d1vy0RenxTB+K5Mu57uVSTHtrMK0GAtFr833AkEA6avx20OHo61Yela/4k5kQDtjEf1N0LfI+BcWZtxsS3jDM3i1Hp0KSu5rsCPb8acJo5RO26gGVrfAsDcIXKC+bQJAZZ2XIpsitLyPpuiMOvBbzPavd4gY6Z8KWrfYzJoI/Q9FuBo6rKwl4BFoToD7WIUS+hpkagwWiz+6zLoX1dbOZwJACmH5fSSjAkLRi54PKJ8TFUeOP15h9sQzydI8zJU+upvDEKZsZc/UhT/SySDOxQ4G/523Y0sz/OZtSWcol/UMgQJALesy++GdvoIDLfJX5GBQpuFgFenRiRDabxrE9MNUZ2aPFaFp+DyAe+b4nDwuJaW2LURbr8AEZga7oQj0uYxcYw==\n-----END RSA PRIVATE KEY-----\n"
+		guard let jwt1 = JWTCreator(payload: tstPayload) else {
+			return XCTAssert(false)
+		}
+		do {
+			let key = PEMKey(source: privKey)
+			let token = try jwt1.sign(alg: .rs256, key: key)
+			guard let jwt = JWTVerifier(token) else {
+				return XCTAssert(false)
+			}
+			let key2 = PEMKey(source: pubKey)
+			try jwt.verify(algo: .rs256, key: key2)			
+			let fndName = jwt.payload["name"] as? String
+			XCTAssert(name == fndName!)
+		} catch {
+			XCTAssert(false, "\(error)")
+		}
 	}
 	
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
@@ -298,7 +361,9 @@ class PerfectCryptoTests: XCTestCase {
 			("testRandomBuffer1", testRandomBuffer1),
 			("testRandomBuffer2", testRandomBuffer2),
 			("testCipher1", testCipher1),
-			("testCipher2", testCipher2)
+			("testCipher2", testCipher2),
+			("testJWTCreate1", testJWTCreate1),
+			("testJWTCreate2", testJWTCreate2),
 		]
 	}
 }
