@@ -30,6 +30,7 @@ let package = Package(
     targets: [],
     dependencies: [
 		.Package(url: "https://github.com/PerfectlySoft/PerfectLib.git", majorVersion: 2),
+		.Package(url: "https://github.com/PerfectlySoft/Perfect-Thread.git", majorVersion: 2),
 		.Package(url: cOpenSSLRepo, majorVersion: 2)
 	]
 )
