@@ -18,11 +18,14 @@
 //
 
 import COpenSSL
-// WIP
-//public enum KeyType {
-//	case rsa, dsa, dh
-//}
-//
+import PerfectLib
+
+public struct KeyError: Error {
+	public let msg: String
+	init(_ msg: String) {
+		self.msg = msg
+	}
+}
 
 public class Key {
 	let pkey: UnsafeMutablePointer<EVP_PKEY>?
@@ -52,23 +55,58 @@ public class HMACKey: Key {
 }
 
 public class PEMKey: Key {
-	public init(pemPath: String) {
-		var f = FileIO(name: pemPath, mode: "r")
-		var kp: UnsafeMutablePointer<EVP_PKEY>? = nil
-		if nil == PEM_read_bio_PrivateKey(f.bio, &kp, nil, nil) {
-			f = FileIO(name: pemPath, mode: "r")
-			PEM_read_bio_PUBKEY(f.bio, &kp, nil, nil)
-		}
-		super.init(kp)
+	public convenience init(pemPath: String) throws {
+		try self.init(source: try File(pemPath).readString())
 	}
 	
-	public init(source: String) {
+	public init(source original: String) throws {
+		let source = PEMKey.cleanSource(original)
 		var f = MemoryIO(source)
 		var kp: UnsafeMutablePointer<EVP_PKEY>? = nil
 		if nil == PEM_read_bio_PrivateKey(f.bio, &kp, nil, nil) {
 			f = MemoryIO(source)
-			PEM_read_bio_PUBKEY(f.bio, &kp, nil, nil)
+			guard nil != PEM_read_bio_PUBKEY(f.bio, &kp, nil, nil) else {
+				throw KeyError("No public or private key could be read.")
+			}
 		}
 		super.init(kp)
+	}
+	
+	static func cleanSource(_ source: String) -> String {
+		var inHeader = true
+		let charMax = 64
+		var charCount = 0
+		var accum = ""
+		source.characters.forEach {
+			c in
+			switch c {
+			case "\r", "\n", "\r\n":
+				if inHeader {
+					inHeader = false
+					accum += "\n"
+					charCount = 0
+				}
+			case "-":
+				if !inHeader {
+					accum += "\n"
+					charCount = 0
+				}
+				inHeader = true
+				accum += "-"
+				charCount += 1
+			default:
+				if charCount == charMax {
+					accum += "\n"
+					charCount = 0
+				} else {
+					charCount += 1
+				}
+				accum += String(c)
+			}
+		}
+		if inHeader {
+			accum += "\n"
+		}
+		return accum
 	}
 }

@@ -20,6 +20,7 @@
 import PerfectLib
 
 private let dot = UInt8(46)
+private let jwtEncoding = Encoding.base64url
 
 /// Types used by both JWTCreator and JWTVerifier
 public struct JWT {
@@ -57,7 +58,7 @@ public struct JWTVerifier {
 	/// If verification succeeds then the `.headers` and `.payload` properties can be safely accessed.
 	public init?(_ jwt: String) {
 		let split = jwt.utf8.split(separator: dot, omittingEmptySubsequences: false)
-		let decoded = split.flatMap { $0.map { $0 }.decode(.base64url) }
+		let decoded = split.flatMap { $0.map { $0 }.decode(jwtEncoding) }
 		guard decoded.count == 3 else {
 			return nil
 		}
@@ -87,8 +88,8 @@ public struct JWTVerifier {
 		if case .none = algo {
 			return
 		}
-		guard let header64 = headerBytes.encode(.base64url),
-			let payload64 = payloadBytes.encode(.base64url) else {
+		guard let header64 = headerBytes.encode(jwtEncoding),
+			let payload64 = payloadBytes.encode(jwtEncoding) else {
 				throw JWT.Error.verificationError("Internal error. Unable to base64url encode header and payload.")
 		}
 		let part1 = header64 + [dot] + payload64
@@ -139,13 +140,13 @@ public struct JWTCreator {
 			useHeaders[key] = value
 		}
 		let headerBytes = Array(try useHeaders.jsonEncodedString().utf8)
-		guard let h64 = headerBytes.encode(.base64),
-			let p64 = self.payloadBytes.encode(.base64url) else {
+		guard let h64 = headerBytes.encode(jwtEncoding),
+			let p64 = self.payloadBytes.encode(jwtEncoding) else {
 				throw JWT.Error.signingError("Internal error. Unable to base64url encode header and payload.")
 		}
 		let part1 = h64 + [dot] + p64
 		let sig = try sign(part1, algo: alg, key: key)
-		guard let s64 = sig.encode(.base64url),
+		guard let s64 = sig.encode(jwtEncoding),
 			let ret = String(validatingUTF8: part1 + [dot] + s64) else {
 				throw JWT.Error.signingError("Invalid resulting JWT")
 		}
