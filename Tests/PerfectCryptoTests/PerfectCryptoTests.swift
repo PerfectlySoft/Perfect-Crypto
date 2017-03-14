@@ -329,12 +329,12 @@ class PerfectCryptoTests: XCTestCase {
 			return XCTAssert(false)
 		}
 		do {
-			let key = PEMKey(source: privKey)
+			let key = try PEMKey(source: privKey)
 			let token = try jwt1.sign(alg: .rs256, key: key)
 			guard let jwt = JWTVerifier(token) else {
 				return XCTAssert(false)
 			}
-			let key2 = PEMKey(source: pubKey)
+			let key2 = try PEMKey(source: pubKey)
 			try jwt.verify(algo: .rs256, key: key2)			
 			let fndName = jwt.payload["name"] as? String
 			XCTAssert(name == fndName!)
