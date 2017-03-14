@@ -305,14 +305,18 @@ extension Digest {
 		guard 1 == EVP_DigestUpdate(ctx, data.baseAddress, data.count) else {
 			return nil
 		}
-		var mdLen = Int(EVP_MAX_MD_SIZE)
+		var mdLen = 0
 		guard 1 == EVP_DigestSignFinal(ctx, nil, &mdLen) else {
 			return nil
 		}
 		let ret = UnsafeMutableRawBufferPointer.allocate(count: mdLen)
-		guard 1 == EVP_DigestSignFinal(ctx, ret.baseAddress?.assumingMemoryBound(to: UInt8.self), &mdLen) else {
+		var finalLen = mdLen
+		guard 1 == EVP_DigestSignFinal(ctx, ret.baseAddress?.assumingMemoryBound(to: UInt8.self), &finalLen) else {
 			ret.deallocate()
 			return nil
+		}
+		if finalLen < mdLen {
+			return UnsafeMutableRawBufferPointer(start: ret.baseAddress, count: finalLen)
 		}
 		return ret
 	}

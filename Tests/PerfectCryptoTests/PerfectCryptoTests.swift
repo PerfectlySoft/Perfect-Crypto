@@ -302,21 +302,23 @@ class PerfectCryptoTests: XCTestCase {
 		let tstPayload = ["sub": "1234567890", "name": "John Doe", "admin": true] as [String : Any]
 		let secret = "secret"
 		let name = "John Doe"
-		guard let jwt1 = JWTCreator(payload: tstPayload) else {
-			return XCTAssert(false)
-		}
-		do {
-			let token = try jwt1.sign(alg: .hs256, key: secret)
-			
-			guard let jwt = JWTVerifier(token) else {
-				return XCTAssert(false)
-			}
-			try jwt.verify(algo: .hs256, key: HMACKey(secret))
-				
-			let fndName = jwt.payload["name"] as? String
-			XCTAssert(name == fndName!)
-		} catch {
-			XCTAssert(false, "\(error)")
+		for _ in 0..<30 {
+		  guard let jwt1 = JWTCreator(payload: tstPayload) else {
+			  return XCTAssert(false)
+		  }
+		  do {
+			  let token = try jwt1.sign(alg: .hs256, key: secret)
+			  
+			  guard let jwt = JWTVerifier(token) else {
+				  return XCTAssert(false)
+			  }
+			  try jwt.verify(algo: .hs256, key: HMACKey(secret))
+				  
+			  let fndName = jwt.payload["name"] as? String
+			  XCTAssert(name == fndName!)
+		  } catch {
+			  XCTAssert(false, "\(error)")
+		  }
 		}
 	}
 	
@@ -325,23 +327,52 @@ class PerfectCryptoTests: XCTestCase {
 		let name = "John Doe"
 		let pubKey = "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdlatRjRjogo3WojgGHFHYLugdUWAY9iR3fy4arWNA1KoS8kVw33cJibXr8bvwUAUparCwlvdbH6dvEOfou0/gCFQsHUfQrSDv+MuSUMAe8jzKE4qW+jK+xQU9a03GUnKHkkle+Q0pX/g6jXZ7r1/xAK5Do2kQ+X5xK9cipRgEKwIDAQAB\n-----END PUBLIC KEY-----\n"
 		let privKey = "-----BEGIN RSA PRIVATE KEY-----\nMIICWwIBAAKBgQDdlatRjRjogo3WojgGHFHYLugdUWAY9iR3fy4arWNA1KoS8kVw33cJibXr8bvwUAUparCwlvdbH6dvEOfou0/gCFQsHUfQrSDv+MuSUMAe8jzKE4qW+jK+xQU9a03GUnKHkkle+Q0pX/g6jXZ7r1/xAK5Do2kQ+X5xK9cipRgEKwIDAQABAoGAD+onAtVye4ic7VR7V50DF9bOnwRwNXrARcDhq9LWNRrRGElESYYTQ6EbatXS3MCyjjX2eMhu/aF5YhXBwkppwxg+EOmXeh+MzL7Zh284OuPbkglAaGhV9bb6/5CpuGb1esyPbYW+Ty2PC0GSZfIXkXs76jXAu9TOBvD0ybc2YlkCQQDywg2R/7t3Q2OE2+yo382CLJdrlSLVROWKwb4tb2PjhY4XAwV8d1vy0RenxTB+K5Mu57uVSTHtrMK0GAtFr833AkEA6avx20OHo61Yela/4k5kQDtjEf1N0LfI+BcWZtxsS3jDM3i1Hp0KSu5rsCPb8acJo5RO26gGVrfAsDcIXKC+bQJAZZ2XIpsitLyPpuiMOvBbzPavd4gY6Z8KWrfYzJoI/Q9FuBo6rKwl4BFoToD7WIUS+hpkagwWiz+6zLoX1dbOZwJACmH5fSSjAkLRi54PKJ8TFUeOP15h9sQzydI8zJU+upvDEKZsZc/UhT/SySDOxQ4G/523Y0sz/OZtSWcol/UMgQJALesy++GdvoIDLfJX5GBQpuFgFenRiRDabxrE9MNUZ2aPFaFp+DyAe+b4nDwuJaW2LURbr8AEZga7oQj0uYxcYw==\n-----END RSA PRIVATE KEY-----\n"
-		guard let jwt1 = JWTCreator(payload: tstPayload) else {
-			return XCTAssert(false)
-		}
-		do {
-			let key = try PEMKey(source: privKey)
-			let token = try jwt1.sign(alg: .rs256, key: key)
-			guard let jwt = JWTVerifier(token) else {
-				return XCTAssert(false)
-			}
-			let key2 = try PEMKey(source: pubKey)
-			try jwt.verify(algo: .rs256, key: key2)			
-			let fndName = jwt.payload["name"] as? String
-			XCTAssert(name == fndName!)
-		} catch {
-			XCTAssert(false, "\(error)")
+		for _ in 0..<30 {
+		  guard let jwt1 = JWTCreator(payload: tstPayload) else {
+			  return XCTAssert(false)
+		  }
+		  do {
+			  let key = try PEMKey(source: privKey)
+			  let token = try jwt1.sign(alg: .rs256, key: key)
+			  guard let jwt = JWTVerifier(token) else {
+				  return XCTAssert(false)
+			  }
+			  let key2 = try PEMKey(source: pubKey)
+			  try jwt.verify(algo: .rs256, key: key2)			
+			  let fndName = jwt.payload["name"] as? String
+			  XCTAssert(name == fndName!)
+		  } catch {
+			  XCTAssert(false, "\(error)")
+		  }
 		}
 	}
+	
+	func testJWTCreate3() {
+		let tstPayload = ["sub": "1234567890", "name": "John Doe", "admin": true] as [String : Any]
+		let name = "John Doe"
+		let pubKey = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAENyTiyHJTNSQU3UqvzGxKe9ztD08SeBKWRfdvFi5Dp3hGXTgQE3Hb6v0jHZV62R0T1Uu4b+R3IZV6DeozO7JpSQ==\n-----END PUBLIC KEY-----"
+		let privKey = "-----BEGIN PRIVATE KEY-----\nMIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQgW3Yv7y/niwo3xaG/Hzq8s+Jnil0jnsMCguCeKKTxG3OgCgYIKoZIzj0DAQehRANCAAQ3JOLIclM1JBTdSq/MbEp73O0PTxJ4EpZF928WLkOneEZdOBATcdvq/SMdlXrZHRPVS7hv5HchlXoN6jM7smlJ\n-----END PRIVATE KEY-----"
+		for _ in 0..<30 {
+		  guard let jwt1 = JWTCreator(payload: tstPayload) else {
+			  return XCTAssert(false)
+		  }
+		  do {
+			  let key = try PEMKey(source: privKey)
+			  let token = try jwt1.sign(alg: .es256, key: key)
+			  guard let jwt = JWTVerifier(token) else {
+				  return XCTAssert(false)
+			  }
+			  let key2 = try PEMKey(source: pubKey)
+			  try jwt.verify(algo: .es256, key: key2)
+			  let fndName = jwt.payload["name"] as? String
+			  XCTAssert(name == fndName!)
+		  } catch {
+			  XCTAssert(false, "\(error)")
+		  }
+		}
+	}
+	
+	
 	
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
