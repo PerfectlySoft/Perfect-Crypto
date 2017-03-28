@@ -49,7 +49,7 @@ struct OpenSSLInternal {
 		CRYPTO_set_locking_callback(lockingCallback)
 		
 		let threadIdCallback: @convention(c) () -> UInt = {
-			return unsafeBitCast(pthread_self(), to: UInt.self)
+			return UInt(bitPattern: pthread_self())
 		}
 		
 		CRYPTO_set_id_callback(threadIdCallback)
@@ -292,7 +292,7 @@ extension Digest {
 		return Int(evp.pointee.md_size)
 	}
 	
-	func sign(_ data: UnsafeRawBufferPointer, key: Key) -> UnsafeMutableRawBufferPointer? {
+	func sign(_ data: UnsafeRawBufferPointer, privateKey key: Key) -> UnsafeMutableRawBufferPointer? {
 		guard let ctx = EVP_MD_CTX_create() else {
 			return nil
 		}
@@ -322,7 +322,7 @@ extension Digest {
 	}
 	
 	
-	func verify(_ data: UnsafeRawBufferPointer, signature: UnsafeRawBufferPointer, key: Key) -> Bool {
+	func verify(_ data: UnsafeRawBufferPointer, signature: UnsafeRawBufferPointer, publicKey key: Key) -> Bool {
 		
 		if key is HMACKey {
 			guard let signed = data.sign(self, key: key) else {

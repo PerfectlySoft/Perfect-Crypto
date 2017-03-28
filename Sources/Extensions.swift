@@ -56,15 +56,16 @@ public extension String {
 	func encode(_ encoding: EncodingS) -> [UInt8]? {
 		return Array(utf8).encode(encoding)
 	}
-	/// Perform the digest algorithm on the String's UTF8 bytes
+	/// Perform the digest algorithm on the String's UTF8 bytes.
 	func digest(_ digest: Digest) -> [UInt8]? {
 		return Array(utf8).digest(digest)
 	}
-	/// Sign the String data into an array of bytes using the indicated algorithm and key
+	/// Sign the String data into an array of bytes using the indicated algorithm and key.
 	func sign(_ digest: Digest, key: Key) -> [UInt8]? {
 		return Array(utf8).sign(digest, key: key)
 	}
-	/// Verify the signature against the String data
+	/// Verify the signature against the String data.
+	/// Returns true if the signature is verified. Returns false otherwise.
 	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool {
 		return Array(utf8).verify(digest, signature: signature, key: key)
 	}
@@ -110,7 +111,7 @@ public extension Array where Element: Octal {
 		defer { newPtr.deallocate() }
 		return newPtr.map { $0 }
 	}
-	/// Sign the Array data into an array of bytes using the indicated algorithm and key
+	/// Sign the Array data into an array of bytes using the indicated algorithm and key.
 	func sign(_ digest: Digest, key: Key) -> [UInt8]? {
 		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
 		guard let newPtr = ptr.sign(digest, key: key) else {
@@ -120,12 +121,13 @@ public extension Array where Element: Octal {
 		return newPtr.map { $0 }
 	}
 	/// Verify the array against the signature.
+	/// Returns true if the signature is verified. Returns false otherwise.
 	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool {
 		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
 		let sigPtr = UnsafeRawBufferPointer(start: signature, count: signature.count)
 		return ptr.verify(digest, signature: sigPtr, key: key)
 	}
-	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector).
 	func encrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
 		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
 		let keyv = UnsafeRawBufferPointer(start: key, count: key.count)
@@ -138,7 +140,7 @@ public extension Array where Element: Octal {
 		}
 		return v.map { UInt8($0) }
 	}
-	/// Encrypt this buffer using the indicated cipher, key an iv (initialization vector)
+	/// Encrypt this buffer using the indicated cipher, key an iv (initialization vector).
 	func decrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
 		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
 		let keyv = UnsafeRawBufferPointer(start: key, count: key.count)
@@ -218,18 +220,19 @@ public extension UnsafeRawBufferPointer {
 	/// Sign the buffer using the indicated algorithm and key.
 	/// The return value must be deallocated by the caller.
 	func sign(_ digest: Digest, key: Key) -> UnsafeMutableRawBufferPointer? {
-		return digest.sign(self, key: key)
+		return digest.sign(self, privateKey: key)
 	}
 	/// Verify the signature against the buffer.
+	/// Returns true if the signature is verified. Returns false otherwise.
 	func verify(_ digest: Digest, signature: UnsafeRawBufferPointer, key: Key) -> Bool {
-		return digest.verify(self, signature: signature, key: key)
+		return digest.verify(self, signature: signature, publicKey: key)
 	}
-	/// Encrypt this buffer using the indicated cipher, key and iv (initialization vector)
+	/// Encrypt this buffer using the indicated cipher, key and iv (initialization vector).
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func encrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		return cipher.encrypt(self, key: key, iv: iv)
 	}
-	/// Decrypt this buffer using the indicated cipher, key and iv (initialization vector)
+	/// Decrypt this buffer using the indicated cipher, key and iv (initialization vector).
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func decrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		return cipher.decrypt(self, key: key, iv: iv)

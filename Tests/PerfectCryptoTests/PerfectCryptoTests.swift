@@ -56,12 +56,12 @@ class PerfectCryptoTests: XCTestCase {
 			return XCTAssert(false)
 		}
 		let baseStr = String(validatingUTF8: baseBytes)
-		XCTAssert(baseStr == "8J-koSBSw6Rrc23DtnJnw6VzZW4", "\(baseStr)")
+		XCTAssert(baseStr == "8J-koSBSw6Rrc23DtnJnw6VzZW4", "\(String(describing: baseStr))")
 		guard let unHex = baseBytes.decode(.base64url) else {
 			return XCTAssert(false)
 		}
 		let unhexed = String(validatingUTF8: unHex)
-		XCTAssert(unhexed == testStr, "\(unhexed)")
+		XCTAssert(unhexed == testStr, "\(String(describing: unhexed))")
 	}
 	
 	func testHexEncDec2() {

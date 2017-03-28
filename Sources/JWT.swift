@@ -83,7 +83,7 @@ public struct JWTVerifier {
 	public func verify(algo: JWT.Alg, key: Key) throws {
 		let header = self.header
 		guard header["alg"] as? String == algo.string else {
-			throw JWT.Error.verificationError("alg mismatch. expected \(algo.string) got \(header["alg"])")
+			throw JWT.Error.verificationError("alg mismatch. expected \(algo.string) got \(String(describing: header["alg"]))")
 		}
 		if case .none = algo {
 			return
