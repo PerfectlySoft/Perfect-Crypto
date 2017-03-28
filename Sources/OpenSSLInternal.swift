@@ -49,7 +49,7 @@ struct OpenSSLInternal {
 		CRYPTO_set_locking_callback(lockingCallback)
 		
 		let threadIdCallback: @convention(c) () -> UInt = {
-			return UInt(bitPattern: pthread_self())
+			return UInt(bitPattern: OpaquePointer(pthread_self()))
 		}
 		
 		CRYPTO_set_id_callback(threadIdCallback)
