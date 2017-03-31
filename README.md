@@ -55,7 +55,7 @@ A comprehensive list of open issues can be found at [http://jira.perfect.org:808
 Add this project as a dependency in your Package.swift file.
 
 ```
-.Package(url: "https://github.com/PerfectlySoft/Perfect-Cipher.git", majorVersion: 1)
+.Package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", majorVersion: 1)
 ```
 
 ## Linux Build Notes
