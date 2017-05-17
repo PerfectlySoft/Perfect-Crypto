@@ -1,4 +1,4 @@
-# Perfect-Crypto [简体中文](README.zh_CN.md)
+# Perfect-Crypto 加密函数库
 
 <p align="center">
     <a href="http://perfect.org/get-involved.html" target="_blank">
@@ -39,44 +39,43 @@
     </a>
 </p>
 
+Perfect 摘要、加密和编解码函数库
 
-Digest, cipher and encoding support for Perfect.
+### 问题报告、内容贡献和客户支持
 
-## Issues
+我们目前正在过渡到使用JIRA来处理所有源代码资源合并申请、修复漏洞以及其它有关问题。因此，GitHub 的“issues”问题报告功能已经被禁用了。
 
-We are transitioning to using JIRA for all bugs and support related issues, therefore the GitHub issues has been disabled.
+如果您发现了问题，或者希望为改进本文提供意见和建议，[请在这里指出](http://jira.perfect.org:8080/servicedesk/customer/portal/1).
 
-If you find a mistake, bug, or any other helpful suggestion you'd like to make on the docs please head over to [http://jira.perfect.org:8080/servicedesk/customer/portal/1](http://jira.perfect.org:8080/servicedesk/customer/portal/1) and raise it.
+在您开始之前，请参阅[目前待解决的问题清单](http://jira.perfect.org:8080/projects/ISS/issues).
 
-A comprehensive list of open issues can be found at [http://jira.perfect.org:8080/projects/ISS/issues](http://jira.perfect.org:8080/projects/ISS/issues)
+## 编译
 
-## Building
-
-Add this project as a dependency in your Package.swift file.
+请在您的Package.swift文件中增加下列依存关系：
 
 ```
 .Package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", majorVersion: 1)
 ```
 
-## Linux Build Notes
+## Linux 编译说明
 
-Ensure that you have installed libssl-dev.
+请确保您的系统上已经安装了 libssl-dev 函数库
 
 ```
 sudo apt-get install libssl-dev
 ```
 
-## Overview
+## 概述
 
-This package wraps up some of the functionality provided by OpenSSL and adds a Swift layer on top of it. The main features are:
+本函数库将OpenSSL的部分功能进行了封装并在Swift基本类型上进行了扩展，主要内容包括：
 
-* Extensions for String, [UInt8] and UnsafeRawBufferPointer that provide simple encode, decode, digest and cipher operations.
-* Convenience functions for creating Strings given non-null terminated UTF8 containing UnsafeRawBufferPointer or [UInt8] objects.
-* Swift wrappers around OpenSSL BIOs, providing chainable, filterable byte IO sinks and sources.
+* 对于字符串、[UInt8] 和 UnsafeRawBufferPointer 指针增加了基本的编解码、摘要码和加密操作。
+* 针对于非零结尾指针创建UTF-8字符串的方法
+* 对OpenSSL BIO函数类的封装，提供可过滤的链式操作。
 
-## Usage Exmaples
+## 使用范例
 
-### Encode/Decode Hex
+### 16进制编解码
 
 ```swift
 let testStr = "Hello, world!"
@@ -94,7 +93,7 @@ String(validatingUTF8: unHex) == testStr
 
 ```
 
-### Encode/Decode Base 64
+### Base 64 编解码
 
 ```swift
 let testStr = "Hello, world!"
@@ -111,7 +110,7 @@ guard let unBase = baseBytes.decode(.base64) else {
 String(validatingUTF8: unBase) == testStr
 ```
 
-### Digest
+### 摘要码
 
 ```swift
 let testStr = "Hello, world!"
@@ -123,31 +122,25 @@ guard let enc = testStr.digest(.sha256)?.encode(.hex) else {
 String(validatingUTF8: enc) == testAnswer
 ```
 
-### Public API
+### API参考
 
-```swift
+``` swift
 public extension String {
-	/// Construct a string from a UTF8 character pointer.
-	/// Character data does not need to be null terminated.
-	/// The buffer's count indicates how many characters are to be converted.
-	/// Returns nil if the data is invalid.
-	init?(validatingUTF8 ptr: UnsafeRawBufferPointer?)
-	/// Construct a string from a UTF8 character array.
-	/// The array's count indicates how many characters are to be converted.
-	/// Returns nil if the data is invalid.
+	/// 从UTF8数组创建字符串，数组长度决定了转换内容长度；如果数据无效则字符串为空
 	init?(validatingUTF8 a: [UInt8])
-	/// Obtain a buffer pointer for the String's UTF8 characters.
+	/// 从指针构造字符串。指针可以不是零值结尾，而是由缓冲区长度决定转换内容长度
+	/// 输入内容无效则返回为空
+	init?(validatingUTF8 ptr: UnsafeRawBufferPointer?)
+	/// 从字符串内获得缓冲区指针。
 	func withBufferPointer<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result
 }
 
 public extension String {
-	/// Decode the String into an array of bytes using the indicated encoding.
-	/// The string's UTF8 characters are decoded.
-	func decode(_ encoding: Encoding) -> [UInt8]?
-	/// Encode the String into an array of bytes using the indicated encoding.
-	/// The string's UTF8 characters are decoded.
+	/// 将字符串转换为指定编码类型的线性表。
 	func encode(_ encoding: Encoding) -> [UInt8]?
-	/// Perform the digest algorithm on the String's UTF8 bytes
+	/// 将字符串解码为制定编码类型的线性表。
+	func decode(_ encoding: Encoding) -> [UInt8]?
+	/// 摘要计算
 	func digest(_ digest: Digest) -> [UInt8]?
 }
 
@@ -155,28 +148,25 @@ public protocol Octal {}
 extension UInt8: Octal {}
 
 public extension Array where Element: Octal {
-	/// Encode the Array into An array of bytes using the indicated encoding.
+	/// 将数组转换为指定编码类型的线性表。
 	func encode(_ encoding: Encoding) -> [UInt8]?
-	/// Decode the Array into an array of bytes using the indicated encoding.
+	/// 将数组解码为制定编码类型的线性表。
 	func decode(_ encoding: Encoding) -> [UInt8]?
-	/// Digest the Array data into an array of bytes using the indicated algorithm.
+	/// 摘要计算
 	func digest(_ digest: Digest) -> [UInt8]?
 }
 
 public extension UnsafeRawBufferPointer {
-	/// Encode the buffer using the indicated encoding.
-	/// The return value must be deallocated by the caller.
+	/// 使用缓冲区生成编码内容，返回结果使用完后必须自行释放
 	func encode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer?
-	/// Decode the buffer using the indicated encoding.
-	/// The return value must be deallocated by the caller.
+	/// 使用缓冲区生成解码内容，返回结果使用完后必须自行释放
 	func decode(_ encoding: Encoding) -> UnsafeMutableRawBufferPointer?
-	/// Digest the buffer using the indicated algorithm.
-	/// The return value must be deallocated by the caller.
+	/// 生成摘要内容，生成结果必须手工释放
 	func digest(_ digest: Digest) -> UnsafeMutableRawBufferPointer?
 }
 ```
 
-### Supported encodings, digests and ciphers
+### 算法清单
 
 ```swift
 /// Available encoding methods.
