@@ -60,7 +60,7 @@ Add this project as a dependency in your Package.swift file.
 
 ## Linux Build Notes
 
-Ensure that you have installed libssl-dev.
+Ensure that you have installed libssl-dev. OpenSSL 1.0.2+ is required for this package. On Ubuntu 14 or some Debian distributions you will need to update your OpenSSL before this package will build.
 
 ```
 sudo apt-get install libssl-dev
