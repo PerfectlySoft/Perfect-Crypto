@@ -278,7 +278,7 @@ extension UInt8 {
 // A generalized wrapper around the Unicode codec operations.
 struct UEncoding {
 	// Return a String given a character generator.
-	static func encode<D : UnicodeCodec, G : IteratorProtocol>(codec inCodec: D, generator: G) -> String where G.Element == D.CodeUnit, G.Element == D.CodeUnit {
+	static func encode<D : UnicodeCodec, G : IteratorProtocol>(codec inCodec: D, generator: G) -> String where G.Element == D.CodeUnit {
 		var encodedString = ""
 		var finished: Bool = false
 		var mutableDecoder = inCodec
