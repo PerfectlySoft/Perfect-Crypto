@@ -8,9 +8,7 @@
 /// Provides a wrapper around the PerfectCrypto functions that give easy encryption/decryption with deterministic salts.
 extension String {
 
-	public func encrypt(password: String) -> String {
-		// cypher
-		let cipher = Cipher.aes_256_cbc
+	public func encrypt(password: String, _ cipher: Cipher = .aes_256_cbc) -> String {
 
 		// String -> to bytes/UINT8
 		let bytes = uint8Array()
@@ -32,14 +30,12 @@ extension String {
 		return String(validatingUTF8: hexBytes ?? [UInt8]()) ?? ""
 	}
 
-	public func decrypt(password: String) -> String {
+	public func decrypt(password: String, _ cipher: Cipher = .aes_256_cbc) -> String {
 		let d1 = uint8Array()
 		let data = d1.decode(.base64) ?? [UInt8]()
 
-		// cypher
-		let cipher = Cipher.aes_256_cbc
 		// key, padded to correct length
-		let key = String().pad(password.uint8Array(), cipher.keyLength)
+		let key = pad(password.uint8Array(), cipher.keyLength)
 
 		// initialization vector. taken from first x ofencrypted data
 		var iv = [UInt8]()
