@@ -372,8 +372,25 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
-	
-	
+	func testEncrypt() {
+		let testOut = "Hello"
+		let encrypted = testOut.encrypt(password: "x1x2x")
+		let decrypted = encrypted.decrypt(password: "x1x2x")
+		XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
+	}
+	func testEncryptHandleNull() {
+		let testOut = ""
+		let encrypted = testOut.encrypt(password: "x1x2x")
+		let decrypted = encrypted.decrypt(password: "x1x2x")
+		XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
+	}
+	func testEncryptFail() {
+		let testOut = "Hello"
+		let encrypted = testOut.encrypt(password: "x1x2x")
+		let decrypted = encrypted.decrypt(password: "x1x3x")
+		XCTAssert(testOut != decrypted, "Encrypted and decrypted values should not match")
+	}
+
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -395,6 +412,10 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipher2", testCipher2),
 			("testJWTCreate1", testJWTCreate1),
 			("testJWTCreate2", testJWTCreate2),
+
+			("testEncrypt", testEncrypt),
+			("testEncryptHandleNull", testEncryptHandleNull),
+			("testEncryptFail", testEncryptFail),
 		]
 	}
 }
