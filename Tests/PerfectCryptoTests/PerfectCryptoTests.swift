@@ -373,22 +373,53 @@ class PerfectCryptoTests: XCTestCase {
 	}
 	
 	func testEncrypt() {
-		let testOut = "Hello"
-		let encrypted = testOut.encrypt(password: "x1x2x")
-		let decrypted = encrypted.decrypt(password: "x1x2x")
-		XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
+		do {
+			let testOut = "Hello"
+			let encrypted = try testOut.encrypt(password: "x1x2x")
+			let decrypted = try encrypted.decrypt(password: "x1x2x")
+			XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
+		} catch {
+			XCTFail("\(error)")
+		}
+	}
+	func testEncryptLargeKey() {
+		do {
+			let testOut = "Hello World, I am a really REALLY long key. Am I long enough? Can I get longer? Probably. Then again maybe not?"
+			let encrypted = try testOut.encrypt(password: "x1x2x")
+			let decrypted = try encrypted.decrypt(password: "x1x2x")
+			XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
+		} catch {
+			XCTFail("\(error)")
+		}
 	}
 	func testEncryptHandleNull() {
-		let testOut = ""
-		let encrypted = testOut.encrypt(password: "x1x2x")
-		let decrypted = encrypted.decrypt(password: "x1x2x")
-		XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
+		do {
+			let testOut = ""
+			let encrypted = try testOut.encrypt(password: "x1x2x")
+			let _ = try encrypted.decrypt(password: "x1x2x")
+			XCTFail("Should have failed. Empty input not allowed.")
+		} catch {
+			// Test passes, this SHOULD fail.
+		}
+	}
+	func testEncryptHandleNullPassword() {
+		do {
+			let testOut = "Donkey"
+			let _ = try testOut.encrypt(password: "")
+			XCTFail("Should have failed. Empty password input not allowed.")
+		} catch {
+			// Test passes, this SHOULD fail.
+		}
 	}
 	func testEncryptFail() {
-		let testOut = "Hello"
-		let encrypted = testOut.encrypt(password: "x1x2x")
-		let decrypted = encrypted.decrypt(password: "x1x3x")
-		XCTAssert(testOut != decrypted, "Encrypted and decrypted values should not match")
+		do {
+			let testOut = "Hello"
+			let encrypted = try testOut.encrypt(password: "x1x2x")
+			let decrypted = try encrypted.decrypt(password: "x1x3x")
+			XCTAssert(testOut != decrypted, "Encrypted and decrypted values should not match")
+		} catch {
+			XCTFail("\(error)")
+		}
 	}
 
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
@@ -414,7 +445,9 @@ class PerfectCryptoTests: XCTestCase {
 			("testJWTCreate2", testJWTCreate2),
 
 			("testEncrypt", testEncrypt),
+			("testEncryptLargeKey", testEncryptLargeKey),
 			("testEncryptHandleNull", testEncryptHandleNull),
+			("testEncryptHandleNullPassword", testEncryptHandleNullPassword),
 			("testEncryptFail", testEncryptFail),
 		]
 	}
