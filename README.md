@@ -71,8 +71,10 @@ sudo apt-get install libssl-dev
 This package wraps up some of the functionality provided by OpenSSL and adds a Swift layer on top of it. The main features are:
 
 * Extensions for String, [UInt8] and UnsafeRawBufferPointer that provide simple encode, decode, digest and cipher operations.
-* Convenience functions for creating Strings given non-null terminated UTF8 containing UnsafeRawBufferPointer or [UInt8] objects.
+* JWT (JSON Web Token) generation and validation.
+* Generation of arbitrary amounts of random data.
 * Swift wrappers around OpenSSL BIOs, providing chainable, filterable byte IO sinks and sources.
+* Convenience functions for creating Strings given non-null terminated UTF8 containing UnsafeRawBufferPointer or [UInt8] objects.
 
 ## Usage Exmaples
 
@@ -149,6 +151,26 @@ public extension String {
 	func encode(_ encoding: Encoding) -> [UInt8]?
 	/// Perform the digest algorithm on the String's UTF8 bytes
 	func digest(_ digest: Digest) -> [UInt8]?
+	/// Sign the String data into an array of bytes using the indicated algorithm and key.
+	func sign(_ digest: Digest, key: Key) -> [UInt8]?
+	/// Verify the signature against the String data.
+	/// Returns true if the signature is verified. Returns false otherwise.
+	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool
+	/// Encrypt this buffer using the indicated cipher, password, and salt.
+	/// The string's UTF8 characters are encoded.
+	/// Resulting data is in PEM encoded CMS format.
+	func encrypt(_ cipher: Cipher,
+	             password: String,
+	             salt: String,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> String?
+	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
+	/// Resulting decrypted data must be valid UTF-8 characters or the operation will fail.
+	func decrypt(_ cipher: Cipher,
+	             password: String,
+	             salt: String,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> String?
 }
 
 public protocol Octal {}
@@ -161,6 +183,28 @@ public extension Array where Element: Octal {
 	func decode(_ encoding: Encoding) -> [UInt8]?
 	/// Digest the Array data into an array of bytes using the indicated algorithm.
 	func digest(_ digest: Digest) -> [UInt8]?
+	/// Sign the Array data into an array of bytes using the indicated algorithm and key.
+	func sign(_ digest: Digest, key: Key) -> [UInt8]?
+	/// Verify the array against the signature.
+	/// Returns true if the signature is verified. Returns false otherwise.
+	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool
+	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector).
+	func encrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]?
+	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector).
+	func decrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]?
+	/// Encrypt this buffer using the indicated cipher, password, and salt.
+	/// Resulting data is PEM encoded CMS format.
+	func encrypt(_ cipher: Cipher,
+	             password: [UInt8],
+	             salt: [UInt8],
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> [UInt8]?
+	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
+	func decrypt(_ cipher: Cipher,
+	             password: [UInt8],
+	             salt: [UInt8],
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> [UInt8]?
 }
 
 public extension UnsafeRawBufferPointer {
@@ -173,6 +217,40 @@ public extension UnsafeRawBufferPointer {
 	/// Digest the buffer using the indicated algorithm.
 	/// The return value must be deallocated by the caller.
 	func digest(_ digest: Digest) -> UnsafeMutableRawBufferPointer?
+	/// Sign the buffer using the indicated algorithm and key.
+	/// The return value must be deallocated by the caller.
+	func sign(_ digest: Digest, key: Key) -> UnsafeMutableRawBufferPointer?
+	/// Verify the signature against the buffer.
+	/// Returns true if the signature is verified. Returns false otherwise.
+	func verify(_ digest: Digest, signature: UnsafeRawBufferPointer, key: Key) -> Bool
+	/// Encrypt this buffer using the indicated cipher, key and iv (initialization vector).
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func encrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer?
+	/// Decrypt this buffer using the indicated cipher, key and iv (initialization vector).
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func decrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer?
+	/// Encrypt this buffer to PEM encoded CMS format using the indicated cipher, password, and salt.
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func encrypt(_ cipher: Cipher,
+	             password: UnsafeRawBufferPointer,
+	             salt: UnsafeRawBufferPointer,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer?
+   /// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func decrypt(_ cipher: Cipher,
+	             password: UnsafeRawBufferPointer,
+	             salt: UnsafeRawBufferPointer,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer?
+}
+
+public extension UnsafeRawBufferPointer {
+	/// Allocate memory for `size` bytes with word alignment from the encryption library's
+	///	random number generator.
+	///
+	/// - Postcondition: The memory is allocated and initialized to random bits.
+	static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? 
 }
 ```
 
