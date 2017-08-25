@@ -359,6 +359,45 @@ extension Digest {
 		}
 		return true
 	}
+	
+	/// Derive a suitable encryption key based on a password and salt.
+	/// The "PKCS5 PBKDF2 HMAC" algorithm will be used to generate the key.
+	/// The `iterations` parameter should generally be a number greater than 1000.
+	/// The `keyLength` parameter should indicate the desired key length and will generally match the `keyLength` of a cipher.
+	public func deriveKey(password: String, salt: String, iterations: Int, keyLength: Int) -> [UInt8]? {
+		return deriveKey(password: Array(password.utf8),
+		                 salt: Array(salt.utf8),
+		                 iterations: iterations, keyLength: keyLength)
+	}
+	
+	/// Derive a suitable encryption key based on a password and salt.
+	/// The "PKCS5 PBKDF2 HMAC" algorithm will be used to generate the key.
+	/// The `iterations` parameter should generally be a number greater than 1000.
+	/// The `keyLength` parameter should indicate the desired key length and will generally match the `keyLength` of a cipher.
+	public func deriveKey(password: [UInt8], salt: [UInt8], iterations: Int, keyLength: Int) -> [UInt8]? {
+		return deriveKey(password: UnsafeRawBufferPointer(start: password, count: password.count),
+		                 salt: UnsafeRawBufferPointer(start: salt, count: salt.count),
+		                 iterations: iterations, keyLength: keyLength)
+	}
+	
+	/// Derive a suitable encryption key based on a password and salt.
+	/// The "PKCS5 PBKDF2 HMAC" algorithm will be used to generate the key.
+	/// The `iterations` parameter should generally be a number greater than 1000.
+	/// The `keyLength` parameter should indicate the desired key length and will generally match the `keyLength` of a cipher.
+	public func deriveKey(password: UnsafeRawBufferPointer, salt: UnsafeRawBufferPointer, iterations: Int, keyLength: Int) -> [UInt8]? {
+		guard let pw = password.baseAddress?.assumingMemoryBound(to: Int8.self),
+			let sw = salt.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
+			return nil
+		}
+		var a = [UInt8](repeating: 0, count: keyLength)
+		guard 0 != PKCS5_PBKDF2_HMAC(pw, Int32(password.count),
+		                  sw, Int32(salt.count),
+		                  Int32(iterations), evp, Int32(keyLength),
+		                  &a) else {
+							return nil
+		}
+		return a
+	}
 }
 
 extension Cipher {
@@ -564,6 +603,82 @@ extension Cipher {
 			return newDstPtr
 		}
 		return dstPtr
+	}
+	
+	func encrypt(_ data: UnsafeRawBufferPointer,
+	             password: UnsafeRawBufferPointer,
+	             salt: UnsafeRawBufferPointer,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
+		guard let derived = keyDigest.deriveKey(password: password,
+		                                   salt: salt,
+		                                   iterations: keyIterations,
+		                                   keyLength: keyLength) else {
+			return nil
+		}
+		let derivedPassword = UnsafeRawBufferPointer(start: derived, count: derived.count)
+		let memBio = MemoryIO(data)
+		let flags =  UInt32(CMS_STREAM | CMS_BINARY) // encrypted data will have LF converted to CRLF if not CMS_BINARY
+		guard let cms = CMS_EncryptedData_encrypt(memBio.bio, evp,
+		                                          derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
+		                                          derivedPassword.count,
+		                                          flags) else {
+			return nil
+		}
+		defer {
+			CMS_ContentInfo_free(cms)
+		}
+		let outBio = MemoryIO()
+		guard 0 != PEM_write_bio_CMS_stream(outBio.bio, cms, memBio.bio, Int32(flags)),
+				let mem = outBio.memory else {
+			return nil
+		}
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: mem.count)
+		guard let r = ret.baseAddress, let m = mem.baseAddress else {
+			ret.deallocate()
+			return nil
+		}
+		memcpy(r, m, mem.count)
+		return ret
+	}
+	
+	func decrypt(_ data: UnsafeRawBufferPointer,
+	                    password: UnsafeRawBufferPointer,
+	                    salt: UnsafeRawBufferPointer,
+	                    keyIterations: Int = 2048,
+	                    keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
+		guard let derived = keyDigest.deriveKey(password: password,
+		                                        salt: salt,
+		                                        iterations: keyIterations,
+		                                        keyLength: keyLength) else {
+			return nil
+		}
+		let flags =  UInt32(CMS_STREAM | CMS_BINARY)
+		let derivedPassword = UnsafeRawBufferPointer(start: derived, count: derived.count)
+		let memBio = MemoryIO(data)
+		guard let cms = PEM_read_bio_CMS(memBio.bio, nil, nil, nil) else {
+			return nil
+		}
+		defer {
+			CMS_ContentInfo_free(cms)
+		}
+		let outBio = MemoryIO()
+		guard 0 != CMS_EncryptedData_decrypt(cms,
+			                               derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
+			                               derivedPassword.count,
+			                               nil, outBio.bio, flags) else {
+			return nil
+		}
+		guard let mem = outBio.memory, !mem.isEmpty else {
+			return nil
+		}
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: mem.count)
+		guard let r = ret.baseAddress, let m = mem.baseAddress else {
+			ret.deallocate()
+			return nil
+		}
+		memcpy(r, m, mem.count)
+		return ret
 	}
 }
 

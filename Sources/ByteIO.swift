@@ -282,7 +282,7 @@ public class MemoryIO: ByteIOBase, ByteSink, ByteSource {
 		super.init(bio: BIO_new_mem_buf(pointer.baseAddress, Int32(pointer.count)))
 	}
 	/// Create a new buffer from the indicated data.
-	/// The buffer's data is copied to a new buiffer and so does not need to remain valid.
+	/// The buffer's data is copied to a new buffer and so does not need to remain valid.
 	public convenience init(copying: UnsafeRawBufferPointer) {
 		self.init()
 		let mem = BUF_MEM_new()

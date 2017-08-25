@@ -18,6 +18,8 @@
 //
 //
 
+import Foundation
+
 public extension String {
 	/// Construct a string from a UTF8 character array.
 	/// The array's count indicates how many characters are to be converted.
@@ -68,6 +70,31 @@ public extension String {
 	/// Returns true if the signature is verified. Returns false otherwise.
 	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool {
 		return Array(utf8).verify(digest, signature: signature, key: key)
+	}
+	/// Encrypt this buffer using the indicated cipher, password, and salt.
+	/// The string's UTF8 characters are encoded.
+	/// Resulting data is in PEM encoded CMS format.
+	func encrypt(_ cipher: Cipher,
+	             password: String,
+	             salt: String,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> String? {
+		guard let v = Array(utf8).encrypt(cipher, password: Array(password.utf8), salt: Array(salt.utf8), keyIterations: keyIterations, keyDigest: keyDigest) else {
+			return nil
+		}
+		return String(validatingUTF8: v)
+	}
+	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
+	/// Resulting decrypted data must be valid UTF-8 characters or the operation will fail.
+	func decrypt(_ cipher: Cipher,
+	             password: String,
+	             salt: String,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> String? {
+		guard let v = Array(utf8).decrypt(cipher, password: Array(password.utf8), salt: Array(salt.utf8), keyIterations: keyIterations, keyDigest: keyDigest) else {
+			return nil
+		}
+		return String(validatingUTF8: v)
 	}
 }
 
@@ -140,12 +167,47 @@ public extension Array where Element: Octal {
 		}
 		return v.map { UInt8($0) }
 	}
-	/// Encrypt this buffer using the indicated cipher, key an iv (initialization vector).
+	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector).
 	func decrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
 		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
 		let keyv = UnsafeRawBufferPointer(start: key, count: key.count)
 		let ivv = UnsafeRawBufferPointer(start: iv, count: iv.count)
 		guard let v = cipher.decrypt(sv, key: keyv, iv: ivv) else {
+			return nil
+		}
+		defer {
+			v.deallocate()
+		}
+		return v.map { UInt8($0) }
+	}
+	/// Encrypt this buffer using the indicated cipher, password, and salt.
+	/// Resulting data is PEM encoded CMS format.
+	func encrypt(_ cipher: Cipher,
+	             password: [UInt8],
+	             salt: [UInt8],
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> [UInt8]? {
+		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
+		let pwv = UnsafeRawBufferPointer(start: password, count: password.count)
+		let saltv = UnsafeRawBufferPointer(start: salt, count: salt.count)
+		guard let v = sv.encrypt(cipher, password: pwv, salt: saltv, keyIterations: keyIterations, keyDigest: keyDigest) else {
+			return nil
+		}
+		defer {
+			v.deallocate()
+		}
+		return v.map { UInt8($0) }
+	}
+	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
+	func decrypt(_ cipher: Cipher,
+	             password: [UInt8],
+	             salt: [UInt8],
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> [UInt8]? {
+		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
+		let pwv = UnsafeRawBufferPointer(start: password, count: password.count)
+		let saltv = UnsafeRawBufferPointer(start: salt, count: salt.count)
+		guard let v = sv.decrypt(cipher, password: pwv, salt: saltv, keyIterations: keyIterations, keyDigest: keyDigest) else {
 			return nil
 		}
 		defer {
@@ -236,6 +298,24 @@ public extension UnsafeRawBufferPointer {
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func decrypt(_ cipher: Cipher, key: UnsafeRawBufferPointer, iv: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		return cipher.decrypt(self, key: key, iv: iv)
+	}
+	/// Encrypt this buffer to PEM encoded CMS format using the indicated cipher, password, and salt.
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func encrypt(_ cipher: Cipher,
+	             password: UnsafeRawBufferPointer,
+	             salt: UnsafeRawBufferPointer,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
+		return cipher.encrypt(self, password: password, salt: salt, keyIterations: keyIterations, keyDigest: keyDigest)
+	}
+	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
+	/// Returns a newly allocated buffer which must be freed by the caller.
+	func decrypt(_ cipher: Cipher,
+	             password: UnsafeRawBufferPointer,
+	             salt: UnsafeRawBufferPointer,
+	             keyIterations: Int = 2048,
+	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
+		return cipher.decrypt(self, password: password, salt: salt, keyIterations: keyIterations, keyDigest: keyDigest)
 	}
 }
 

@@ -215,7 +215,6 @@ class PerfectCryptoTests: XCTestCase {
 		defer {
 			enc.deallocate()
 		}
-//		print("\(String(validatingUTF8: UnsafeRawBufferPointer(enc)))")
 	}
 	
 	func testRandomBuffer2() {
@@ -223,11 +222,6 @@ class PerfectCryptoTests: XCTestCase {
 		let buff2 = [UInt8](randomCount: 2048)
 		
 		XCTAssert(buff != buff2)
-		
-//		guard let hexd = buff.encode(.hex) else {
-//			return XCTAssert(false)
-//		}
-//		print("\(String(validatingUTF8: hexd))")
 	}
 	
 	func testCipher1() {
@@ -372,54 +366,45 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
-	func testEncrypt() {
-		do {
-			let testOut = "Hello"
-			let encrypted = try testOut.encrypt(password: "x1x2x")
-			let decrypted = try encrypted.decrypt(password: "x1x2x")
-			XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
-		} catch {
-			XCTFail("\(error)")
+	func testCipherCMS1() {
+		let cipher = Cipher.aes_256_cbc
+		let password = Array("this is a good pw".utf8)
+		let salt = Array("this is a salty salt".utf8)
+		let randomArray = [UInt8](randomCount: 1029)
+		guard let result = randomArray.encrypt(cipher, password: password, salt: salt) else {
+			return XCTAssert(false)
 		}
+		guard let decryptedAry = result.decrypt(cipher, password: password, salt: salt) else {
+			return XCTAssert(false)
+		}
+		XCTAssertEqual(decryptedAry, randomArray)
 	}
-	func testEncryptLargeKey() {
-		do {
-			let testOut = "Hello World, I am a really REALLY long key. Am I long enough? Can I get longer? Probably. Then again maybe not?"
-			let encrypted = try testOut.encrypt(password: "x1x2x")
-			let decrypted = try encrypted.decrypt(password: "x1x2x")
-			XCTAssert(testOut == decrypted, "Encrypted and decrypted values do not match")
-		} catch {
-			XCTFail("\(error)")
+	
+	func testCipherCMS2() {
+		let cipher = Cipher.aes_256_cbc
+		let password = Array("this is a good pw".utf8)
+		let passwordBad = Array("this is a bad pw".utf8)
+		let salt = Array("this is a salty salt".utf8)
+		let randomArray = [UInt8](randomCount: 1029)
+		guard let result = randomArray.encrypt(cipher, password: password, salt: salt) else {
+			return XCTAssert(false)
 		}
+		let decryptedAry = result.decrypt(cipher, password: passwordBad, salt: salt)
+		XCTAssertNil(decryptedAry)
 	}
-	func testEncryptHandleNull() {
-		do {
-			let testOut = ""
-			let encrypted = try testOut.encrypt(password: "x1x2x")
-			let _ = try encrypted.decrypt(password: "x1x2x")
-			XCTFail("Should have failed. Empty input not allowed.")
-		} catch {
-			// Test passes, this SHOULD fail.
+	
+	func testCipherCMS3() {
+		let cipher = Cipher.aes_256_cbc
+		let password = "this is a good pw"
+		let salt = "this is a salty salt"
+		let data = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		guard let result = data.encrypt(cipher, password: password, salt: salt) else {
+			return XCTAssert(false)
 		}
-	}
-	func testEncryptHandleNullPassword() {
-		do {
-			let testOut = "Donkey"
-			let _ = try testOut.encrypt(password: "")
-			XCTFail("Should have failed. Empty password input not allowed.")
-		} catch {
-			// Test passes, this SHOULD fail.
+		guard let decryptedData = result.decrypt(cipher, password: password, salt: salt) else {
+			return XCTAssert(false)
 		}
-	}
-	func testEncryptFail() {
-		do {
-			let testOut = "Hello"
-			let encrypted = try testOut.encrypt(password: "x1x2x")
-			let decrypted = try encrypted.decrypt(password: "x1x3x")
-			XCTAssert(testOut != decrypted, "Encrypted and decrypted values should not match")
-		} catch {
-			XCTFail("\(error)")
-		}
+		XCTAssertEqual(decryptedData, data)
 	}
 
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
@@ -443,12 +428,11 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipher2", testCipher2),
 			("testJWTCreate1", testJWTCreate1),
 			("testJWTCreate2", testJWTCreate2),
+			("testJWTCreate3", testJWTCreate3),
 
-			("testEncrypt", testEncrypt),
-			("testEncryptLargeKey", testEncryptLargeKey),
-			("testEncryptHandleNull", testEncryptHandleNull),
-			("testEncryptHandleNullPassword", testEncryptHandleNullPassword),
-			("testEncryptFail", testEncryptFail),
+			("testCipherCMS1", testCipherCMS1),
+			("testCipherCMS2", testCipherCMS2),
+			("testCipherCMS3", testCipherCMS3)
 		]
 	}
 }
