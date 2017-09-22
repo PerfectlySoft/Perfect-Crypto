@@ -93,7 +93,7 @@ public struct JWTVerifier {
 				throw JWT.Error.verificationError("Internal error. Unable to base64url encode header and payload.")
 		}
 		let part1 = header64 + [dot] + payload64
-		guard try verify(part1, signature: self.signatureBytes, algo: algo, key: key) else {
+		guard try verify(part1, signature: signatureBytes, algo: algo, key: key) else {
 			throw JWT.Error.verificationError("Signatures did not match.")
 		}
 	}

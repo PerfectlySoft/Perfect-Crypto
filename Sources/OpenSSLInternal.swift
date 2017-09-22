@@ -347,7 +347,7 @@ extension Digest {
 		defer {
 			EVP_MD_CTX_destroy(ctx)
 		}
-		guard 1 == EVP_DigestVerifyInit(ctx, nil, self.evp, nil, key.pkey) else {
+		guard 1 == EVP_DigestVerifyInit(ctx, nil, evp, nil, key.pkey) else {
 			return false
 		}
 		guard 1 == EVP_DigestUpdate(ctx, data.baseAddress, data.count) else {

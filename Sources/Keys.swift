@@ -61,13 +61,33 @@ public class PEMKey: Key {
 	
 	public init(source original: String) throws {
 		let source = PEMKey.cleanSource(original)
-		var f = MemoryIO(source)
 		var kp: UnsafeMutablePointer<EVP_PKEY>? = nil
-		if nil == PEM_read_bio_PrivateKey(f.bio, &kp, nil, nil) {
+		var f = MemoryIO(source)
+		PEM_read_bio_PrivateKey(f.bio, &kp, nil, nil)
+		if nil == kp {
 			f = MemoryIO(source)
-			guard nil != PEM_read_bio_PUBKEY(f.bio, &kp, nil, nil) else {
-				throw KeyError("No public or private key could be read.")
+			PEM_read_bio_PUBKEY(f.bio, &kp, nil, nil)
+		}
+		if nil == kp {
+			f = MemoryIO(source)
+			if let x509 = PEM_read_bio_X509(f.bio, nil, nil, nil) {
+				kp = X509_get_pubkey(x509)
+				X509_free(x509)
 			}
+		}
+		if nil == kp {
+			f = MemoryIO(source)
+			if let rsa = PEM_read_bio_RSAPrivateKey(f.bio, nil, nil, nil) {
+				kp = EVP_PKEY_new()
+				guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_RSA, rsa) else {
+					RSA_free(rsa)
+					EVP_PKEY_free(kp)
+					throw KeyError("No public or private key could be read. Could not fetch RSA private key.")
+				}
+			}
+		}
+		if nil == kp {
+			throw KeyError("No public or private key could be read.")
 		}
 		super.init(kp)
 	}
