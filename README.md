@@ -125,6 +125,26 @@ guard let enc = testStr.digest(.sha256)?.encode(.hex) else {
 String(validatingUTF8: enc) == testAnswer
 ```
 
+### HMAC Sign/Verify
+
+The following snippet will HMAC-SHA1 sign, encode as base64, then decode, and verify a data string. Replace usages of .sha1 or .base64 depending on your requirements.
+
+```swift
+let password = "this is a good pw"
+let data = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	
+if let signed = data.sign(.sha1, key: HMACKey(password))?.encode(.base64),
+	let base64Str = String(validatingUTF8: signed),
+	
+	let reRawData = base64Str.decode(.base64) {
+	
+	let verifyResult = data.verify(.sha1, signature: reRawData, key: HMACKey(password))
+	XCTAssert(verifyResult)
+} else {
+	XCTAssert(false, "Failed signing")
+}
+```
+
 ### Public API
 
 ```swift

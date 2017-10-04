@@ -432,6 +432,22 @@ class PerfectCryptoTests: XCTestCase {
 		XCTAssertEqual(decryptedData, data)
 	}
 	
+	func testHMACKey() {
+		let password = "this is a good pw"
+		let data = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		
+		if let signed = data.sign(.sha1, key: HMACKey(password))?.encode(.base64),
+			let base64Str = String(validatingUTF8: signed),
+		
+			let reRawData = base64Str.decode(.base64) {
+			
+			let verifyResult = data.verify(.sha1, signature: reRawData, key: HMACKey(password))
+			XCTAssert(verifyResult)
+		} else {
+			XCTAssert(false, "Failed signing")
+		}
+	}
+	
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -457,7 +473,8 @@ class PerfectCryptoTests: XCTestCase {
 			("testJWTCreateCert", testJWTCreateCert),
 			("testCipherCMS1", testCipherCMS1),
 			("testCipherCMS2", testCipherCMS2),
-			("testCipherCMS3", testCipherCMS3)
+			("testCipherCMS3", testCipherCMS3),
+			("testHMACKey", testHMACKey)
 		]
 	}
 }
