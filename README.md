@@ -274,6 +274,80 @@ public extension UnsafeRawBufferPointer {
 }
 ```
 
+### JSON Web Tokens (JWT)
+
+This crypto package provides an means for creating new JWT tokens and validating existing tokens.
+
+JSON Web Token (JWT) is an open standard (RFC 7519) that defines a compact and self-contained way for securely transmitting information between parties as a JSON object. This information can be verified and trusted because it is digitally signed. JWTs can be signed using a secret (with the HMAC algorithm) or a public/private key pair using RSA. Source: [JWT](https://jwt.io/introduction/).
+
+New JWT tokens are created through the `JWTCreator` object.
+
+```swift
+/// Creates and signs new JWT tokens.
+public struct JWTCreator {
+	/// Creates a new JWT token given a payload.
+	/// The payload can then be signed to generate a JWT token string.
+	public init?(payload: [String:Any])
+	/// Sign and return a new JWT token string using an HMAC key.
+	/// Additional headers can be optionally provided.
+	/// Throws a JWT.Error.signingError if there is a problem generating the token string.
+	public func sign(alg: JWT.Alg, key: String, headers: [String:Any] = [:]) throws -> String
+	/// Sign and return a new JWT token string using the given key.
+	/// Additional headers can be optionally provided.
+	/// The key type must be compatible with the indicated `algo`.
+	/// Throws a JWT.Error.signingError if there is a problem generating the token string.
+	public func sign(alg: JWT.Alg, key: Key, headers: [String:Any] = [:]) throws -> String
+}
+```
+
+Existing JWT tokens can be validated through the `JWTVerifier` object.
+
+```swift
+/// Accepts a JWT token string and verifies its structural validity and signature.
+public struct JWTVerifier {
+	/// The headers obtained from the token.
+	public var header: [String:Any]
+	/// The payload carried by the token.
+	public var payload: [String:Any]
+	/// Create a JWTVerifier given a source string in the "aaaa.bbbb.cccc" format.
+	/// Returns nil if the given string is not a valid JWT.
+	/// *Does not perform verification in this step.* Call `verify` with your key to validate.
+	/// If verification succeeds then the `.headers` and `.payload` properties can be safely accessed.
+	public init?(_ jwt: String)
+	/// Verify the token based on the indicated algorithm and HMAC key.
+	/// Throws a JWT.Error.verificationError if any aspect of the token is incongruent.
+	/// Returns without any error if the token was able to be verified.
+	/// The parameter `algo` must match the token's "alg" header.
+	public func verify(algo: JWT.Alg, key: String) throws
+	/// Verify the token based on the indicated algorithm and key.
+	/// Throws a JWT.Error.verificationError if any aspect of the token is incongruent.
+	/// Returns without any error if the token was able to be verified.
+	/// The parameter `algo` must match the token's "alg" header.
+	/// The key type must be compatible with the indicated `algo`.
+	public func verify(algo: JWT.Alg, key: Key) throws
+}
+```
+
+The following example will create and then verify a token using the "HS256" alg scheme.
+
+```swift
+let name = "John Doe"
+let tstPayload = ["sub": "1234567890", "name": name, "admin": true] as [String : Any]
+let secret = "secret"
+guard let jwt1 = JWTCreator(payload: tstPayload) else {
+	return // fatal error
+}
+let token = try jwt1.sign(alg: .hs256, key: secret)
+guard let jwt = JWTVerifier(token) else {
+  return // fatal error
+}
+try jwt.verify(algo: .hs256, key: HMACKey(secret))
+let fndName = jwt.payload["name"] as? String
+// name == fndName!
+```
+
+It's important to note that the JWTVerifier will verify that the token is cryptographically sound, but it **does not** validate payload claims such as iss(uer) or exp(iration). You can obtain these from the payload dictionary and validate according to the needs of your application. 
+
 ### Supported encodings, digests and ciphers
 
 ```swift
