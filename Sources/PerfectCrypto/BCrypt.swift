@@ -52,7 +52,7 @@ open class BCrypt {
     return ret
   }
 
-  public static func KDF(_ password: String, salt: String, desiredKeyBytes: Int, rounds: UInt32, ignoreFewRounds: Bool = false) throws -> String {
+  public static func KDF(_ password: String, salt: String, desiredKeyBytes: Int, rounds: UInt32, ignoreFewRounds: Bool = false) throws -> [UInt8] {
     guard !password.isEmpty else {
       throw Exception.InvalidPassword
     }
@@ -75,7 +75,8 @@ open class BCrypt {
     guard 0 == bcrypt_pbkdf(password, password.count, salt, salt.count, key, desiredKeyBytes, rounds) else {
       throw Exception.KDFault
     }
-    return String(cString: key)
+    let buf = UnsafeMutableBufferPointer<UInt8>(start: key, count: desiredKeyBytes)
+    return Array(buf)
   }
 
   #if os(Linux)
