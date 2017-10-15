@@ -447,7 +447,17 @@ class PerfectCryptoTests: XCTestCase {
 			XCTAssert(false, "Failed signing")
 		}
 	}
-	
+
+  func testBCrypt() {
+    do {
+      let salt = try BCrypt.GenSalt()
+      print("salt", salt)
+      let hashed = try BCrypt.Hash("Kk4DQuMMfZL9o", salt: "$2b$04$cVWp4XaNU8a4v1uMRum2SO")
+      XCTAssertEqual(hashed, "$2b$04$cVWp4XaNU8a4v1uMRum2SO026BWLIoQMD/TXg5uZV.0P.uO8m3YEm")
+    }catch {
+      XCTFail(error.localizedDescription)
+    }
+  }
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -474,7 +484,8 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS1", testCipherCMS1),
 			("testCipherCMS2", testCipherCMS2),
 			("testCipherCMS3", testCipherCMS3),
-			("testHMACKey", testHMACKey)
+			("testHMACKey", testHMACKey),
+      ("testBCrypt", testBCrypt)
 		]
 	}
 }
