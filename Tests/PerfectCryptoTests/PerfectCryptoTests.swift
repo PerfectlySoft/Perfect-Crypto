@@ -450,10 +450,19 @@ class PerfectCryptoTests: XCTestCase {
 
   func testBCrypt() {
     do {
-      let salt = try BCrypt.GenSalt()
+      var salt = try BCrypt.GenSalt()
       print("salt", salt)
-      let hashed = try BCrypt.Hash("Kk4DQuMMfZL9o", salt: "$2b$04$cVWp4XaNU8a4v1uMRum2SO")
-      XCTAssertEqual(hashed, "$2b$04$cVWp4XaNU8a4v1uMRum2SO026BWLIoQMD/TXg5uZV.0P.uO8m3YEm")
+      let password = "Kk4DQuMMfZL9o"
+      salt = "$2b$04$cVWp4XaNU8a4v1uMRum2SO"
+      let shadow = "$2b$04$cVWp4XaNU8a4v1uMRum2SO026BWLIoQMD/TXg5uZV.0P.uO8m3YEm"
+      let hashed = try BCrypt.Hash(password, salt: salt)
+      XCTAssertEqual(hashed, shadow)
+      if #available(OSX 10.12.1, *) {
+        XCTAssertTrue(BCrypt.Check(password, hashed: shadow))
+      }
+      #if os(Linux)
+        XCTAssertTrue(BCrypt.Check(password, hashed: shadow))
+      #endif
     }catch {
       XCTFail(error.localizedDescription)
     }
