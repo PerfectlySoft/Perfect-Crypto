@@ -16,7 +16,14 @@ open class BCrypt {
     case InvalidPassword
     case KDFault
   }
-  public static func GenSalt(_ prefix: SaltPrefixType = ._2B,
+
+  /// Generate salt based on the settings
+  /// - parameters:
+  ///   - prefix: 2A or 2B
+  ///   - rounds: a number in [4, 31]
+  /// - returns: a salted string.
+  /// - throws: Exception
+  public static func Salt(_ prefix: SaltPrefixType = ._2B,
                              rounds: Int = 12) throws -> String {
     guard rounds > 3 && rounds < 32 else {
       throw Exception.InvalidRounds
@@ -38,6 +45,12 @@ open class BCrypt {
     return "$" + prefix.rawValue +  "$" + rnd + "$" + output
   }
 
+  /// Generate shadow by password and salt
+  /// - parameters:
+  ///   - password: the password to hash
+  ///   - salt: the salt to add with
+  /// - returns: a salted password
+  /// - throws: Exception
   public static func Hash(_ password: String, salt: String) throws -> String {
     let size = 128
     let hashed = UnsafeMutablePointer<Int8>.allocate(capacity: size)
@@ -80,6 +93,12 @@ open class BCrypt {
   }
 
   #if os(Linux)
+  /// Verify if the password matches the hashed string
+  /// - parameters:
+  ///   - password: a password to test with
+  ///   - hashed: a hashed string to test
+  /// - returns:
+  ///   True if matches.
   public static func Check(_ password: String, hashed: String) -> Bool {
     do {
       let ret = try Hash(password, salt: hashed)
@@ -92,6 +111,12 @@ open class BCrypt {
     }
   }
   #else
+  /// Verify if the password matches the hashed string
+  /// - parameters:
+  ///   - password: a password to test with
+  ///   - hashed: a hashed string to test
+  /// - returns:
+  ///   True if matches.
   @available(OSX 10.12.1, *)
   public static func Check(_ password: String, hashed: String) -> Bool {
     do {

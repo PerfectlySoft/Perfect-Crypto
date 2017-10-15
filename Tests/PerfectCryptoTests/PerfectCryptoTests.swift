@@ -450,7 +450,7 @@ class PerfectCryptoTests: XCTestCase {
 
   func testBCrypt() {
     do {
-      var salt = try BCrypt.GenSalt()
+      var salt = try BCrypt.Salt()
       print("salt", salt)
       let password = "Kk4DQuMMfZL9o"
       salt = "$2b$04$cVWp4XaNU8a4v1uMRum2SO"
