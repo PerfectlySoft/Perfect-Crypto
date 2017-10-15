@@ -41,9 +41,12 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
+				.target(
+						name: "bcrypt",
+						dependencies: []),
         .target(
             name: "PerfectCrypto",
-            dependencies: ["PerfectLib", "PerfectThread", "COpenSSL"]),
+            dependencies: ["PerfectLib", "PerfectThread", "COpenSSL", "bcrypt"]),
         .testTarget(
             name: "PerfectCryptoTests",
             dependencies: ["PerfectCrypto"]),
@@ -69,9 +72,12 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
+				.target(
+						name: "bcrypt",
+						dependencies: []),
         .target(
             name: "PerfectCrypto",
-            dependencies: ["PerfectLib", "PerfectThread", "COpenSSL"]),
+            dependencies: ["PerfectLib", "PerfectThread", "COpenSSL", "bcrypt"]),
         .testTarget(
             name: "PerfectCryptoTests",
             dependencies: ["PerfectCrypto"]),
