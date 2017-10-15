@@ -145,6 +145,52 @@ if let signed = data.sign(.sha1, key: HMACKey(password))?.encode(.base64),
 }
 ```
 
+### BCrypt
+
+**Acknowledgement**: Perfect-Crypto BCrypt module is based on [bcrypt](https://github.com/pyca/bcrypt)
+
+#### `BCrypt.Salt()`
+
+Generate a "salt" string, for example, `let salt = BCrypt.Salt()` will return something like `$2b$12$yfG5ZTnTjg.HcgcI2o6Nhe`
+
+#### `BCrypt.Hash()`
+
+Generate shadow by password and salt. For example:
+
+``` swift
+let password = "Kk4DQuMMfZL9o"
+let salt = "$2b$04$cVWp4XaNU8a4v1uMRum2SO"
+let hashed = try BCrypt.Hash(password, salt: salt)
+
+// the hashed result will be:
+// "$2b$04$cVWp4XaNU8a4v1uMRum2SO026BWLIoQMD/TXg5uZV.0P.uO8m3YEm"
+```
+
+
+#### `BCrypt.Check()`
+
+Verify a password if matches with the previously generated hash:
+
+``` swift
+guard BCrypt.Check(password, hashed: shadow)) else {
+	// Access Denied.
+}
+```
+
+#### `BCrypt.KDF()`
+
+KDF is used in OpenSSH's newer encrypted private key format:
+
+``` swift
+let derived = try BCrypt.KDF("password", salt: "salt", desiredKeyBytes: 32, rounds: 4, ignoreFewRounds: true)
+
+// derived will be a 32 byte UInt8 array
+// 0x5b, 0xbf, 0x0c, 0xc2, 0x93, 0x58, 0x7f, 0x1c,
+// 0x36, 0x35, 0x55, 0x5c, 0x27, 0x79, 0x65, 0x98,
+// 0xd4, 0x7e, 0x57, 0x90, 0x71, 0xbf, 0x42, 0x7e,
+// 0x9d, 0x8f, 0xbe, 0x84, 0x2a, 0xba, 0x34, 0xd9
+```
+
 ### Public API
 
 ```swift

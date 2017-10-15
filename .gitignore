@@ -69,3 +69,6 @@ Packages/
 Package.pins
 .build_lin
 PADockerfile_build
+*.sh
+*.resolved
+*.pins

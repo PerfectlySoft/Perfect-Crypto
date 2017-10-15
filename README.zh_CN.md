@@ -122,6 +122,53 @@ guard let enc = testStr.digest(.sha256)?.encode(.hex) else {
 String(validatingUTF8: enc) == testAnswer
 ```
 
+### BCrypt
+
+**Acknowledgement**: Perfect-Crypto BCrypt module 基于 [bcrypt](https://github.com/pyca/bcrypt)
+
+#### `BCrypt.Salt()`
+
+生成加盐字符串。比如 `let salt = BCrypt.Salt()` 返回结果为 `$2b$12$yfG5ZTnTjg.HcgcI2o6Nhe`
+
+#### `BCrypt.Hash()`
+
+根据密码和盐生成哈希字符串：
+
+``` swift
+let password = "Kk4DQuMMfZL9o"
+let salt = "$2b$04$cVWp4XaNU8a4v1uMRum2SO"
+let hashed = try BCrypt.Hash(password, salt: salt)
+
+// 生成结果：
+// "$2b$04$cVWp4XaNU8a4v1uMRum2SO026BWLIoQMD/TXg5uZV.0P.uO8m3YEm"
+```
+
+
+#### `BCrypt.Check()`
+
+检查输入的密码与之前计算的哈希字符串是否一致
+
+``` swift
+guard BCrypt.Check(password, hashed: shadow)) else {
+	// Access Denied.
+}
+```
+
+#### `BCrypt.KDF()`
+
+KDF 用于 OpenSSH 新版本加密钥匙格式：
+
+``` swift
+let derived = try BCrypt.KDF("password", salt: "salt", desiredKeyBytes: 32, rounds: 4, ignoreFewRounds: true)
+
+// derived will be a 32 byte UInt8 array
+// 0x5b, 0xbf, 0x0c, 0xc2, 0x93, 0x58, 0x7f, 0x1c,
+// 0x36, 0x35, 0x55, 0x5c, 0x27, 0x79, 0x65, 0x98,
+// 0xd4, 0x7e, 0x57, 0x90, 0x71, 0xbf, 0x42, 0x7e,
+// 0x9d, 0x8f, 0xbe, 0x84, 0x2a, 0xba, 0x34, 0xd9
+```
+
+
 ### API参考
 
 ``` swift
