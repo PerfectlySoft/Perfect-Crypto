@@ -19,7 +19,7 @@
 
 import COpenSSL
 import PerfectThread
-#if os(macOS)
+#if os(macOS) || os(iOS)
 	import Darwin
 #else
 	import SwiftGlibc
