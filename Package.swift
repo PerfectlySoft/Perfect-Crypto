@@ -1,3 +1,4 @@
+// swift-tools-version:4.0
 //
 //  Package.swift
 //  PerfectCrypto
@@ -27,10 +28,16 @@ import PackageDescription
 
 let package = Package(
     name: "PerfectCrypto",
-    targets: [],
+	products: [
+		.library(name: "PerfectCrypto", targets: ["PerfectCrypto"])
+	],
     dependencies: [
-		.Package(url: "https://github.com/PerfectlySoft/PerfectLib.git", majorVersion: 3),
-		.Package(url: "https://github.com/PerfectlySoft/Perfect-Thread.git", majorVersion: 3),
-		.Package(url: cOpenSSLRepo, majorVersion: 3)
+		.package(url: "https://github.com/PerfectlySoft/PerfectLib.git", from: "3.0.0"),
+		.package(url: "https://github.com/PerfectlySoft/Perfect-Thread.git", from: "3.0.0"),
+		.package(url: cOpenSSLRepo, from: "3.0.0")
+	],
+	targets: [
+		.target(name: "PerfectCrypto", dependencies: ["PerfectLib", "PerfectThread", "COpenSSL"]),
+		.testTarget(name: "PerfectCryptoTests", dependencies: ["PerfectCrypto"])
 	]
 )
