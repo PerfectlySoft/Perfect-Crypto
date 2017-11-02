@@ -97,7 +97,7 @@ public class PEMKey: Key {
 		let charMax = 64
 		var charCount = 0
 		var accum = ""
-		source.characters.forEach {
+		source.forEach {
 			c in
 			switch c {
 			case "\r", "\n", "\r\n":
