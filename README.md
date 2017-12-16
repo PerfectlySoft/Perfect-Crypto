@@ -76,7 +76,7 @@ This package wraps up some of the functionality provided by OpenSSL and adds a S
 * Swift wrappers around OpenSSL BIOs, providing chainable, filterable byte IO sinks and sources.
 * Convenience functions for creating Strings given non-null terminated UTF8 containing UnsafeRawBufferPointer or [UInt8] objects.
 
-## Usage Exmaples
+## Usage Examples
 
 ### Encode/Decode Hex
 
