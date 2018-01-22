@@ -33,7 +33,7 @@ class Digestor<T> {
     _context = context
   }
 
-  public func sum(_ file: File) throws -> String {
+  public func sum(_ file: File) throws -> [UInt8] {
     try file.open(.read)
     guard _bufferSize > 0,
       _szSignature > 0 else {
@@ -63,12 +63,7 @@ class Digestor<T> {
       throw CryptoError(code: -4, msg: "context finalization fault")
     }
     let buf = UnsafeBufferPointer<UInt8>(start: signature, count: _szSignature)
-    let array = Array(buf)
-    guard let hex = array.encode(.hex),
-      let str = String(validatingUTF8: hex) else {
-        throw CryptoError(code: -5, msg: "hex encoding failed")
-    }
-    return str
+    return Array(buf)
   }
 }
 
@@ -77,9 +72,9 @@ public extension File {
   /// Digest a file into a hex based signature
   /// - parameter algorithm: the algorithm of digest, currently implments: sha0/1/224/256/384/512,ripemd160,whirlpool, md4 and md5
   /// - parameter bufferSize: the file digesting buffer, which is subject to the OS. Default is 16k, can be larger or smaller.
-  /// - returns: a heximal string represents the digest text
+  /// - returns: digest bytes
   /// - throws: CryptoError
-  public func digest(_ algorithm: Digest, bufferSize: Int = 16384) throws -> String {
+  public func digest(_ algorithm: Digest, bufferSize: Int = 16384) throws -> [UInt8] {
     switch algorithm {
     case .sha:
       var ctx = SHA_CTX()

@@ -458,26 +458,37 @@ class PerfectCryptoTests: XCTestCase {
         try hello.write(string: "Hello, world!")
       }
       hello.close()
+      var str = ""
       let sha = try hello.digest(.sha)
-      XCTAssertEqual(sha, "8eb482c0acf5b406c5ef6a8ab9d68e94307f23aa")
+      str = String(validatingUTF8: sha.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "8eb482c0acf5b406c5ef6a8ab9d68e94307f23aa")
       let sha1 = try hello.digest(.sha1)
-      XCTAssertEqual(sha1, "dbaaadb99a6745f2b3bf10bd16504c4b060ef7bc")
+      str = String(validatingUTF8: sha1.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "dbaaadb99a6745f2b3bf10bd16504c4b060ef7bc")
       let sha224 = try hello.digest(.sha224)
-      XCTAssertEqual(sha224, "3fa319945f4e21d5526283fadad50de4c62bb6466fea5d076fcf4cba")
+      str = String(validatingUTF8: sha224.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "3fa319945f4e21d5526283fadad50de4c62bb6466fea5d076fcf4cba")
       let sha256 = try hello.digest(.sha256)
-      XCTAssertEqual(sha256, "f4742dd75bc9ba2578f22d19eaec18328c5cfa56e7f732211a598d281ab0cbc3")
+      str = String(validatingUTF8: sha256.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "f4742dd75bc9ba2578f22d19eaec18328c5cfa56e7f732211a598d281ab0cbc3")
       let sha384 = try hello.digest(.sha384)
-      XCTAssertEqual(sha384, "74c70e023f6eb0d944db730cc9a32e30ccbab9f00061f223dbea6c2daca3c090ab0d4356cd6807642902aedac72d1466")
+      str = String(validatingUTF8: sha384.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "74c70e023f6eb0d944db730cc9a32e30ccbab9f00061f223dbea6c2daca3c090ab0d4356cd6807642902aedac72d1466")
       let sha512 = try hello.digest(.sha512)
-      XCTAssertEqual(sha512, "ea217829b83213dfd43e2eaf3562ed5d5f8b63ddd2d88ae4b189b5abcecbd8e533e37c8c46261f371e12f8e0e7c532e2e6553e9f76186496a435d118db106d54")
+      str = String(validatingUTF8: sha512.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "ea217829b83213dfd43e2eaf3562ed5d5f8b63ddd2d88ae4b189b5abcecbd8e533e37c8c46261f371e12f8e0e7c532e2e6553e9f76186496a435d118db106d54")
       let ripe = try hello.digest(.ripemd160)
-      XCTAssertEqual(ripe, "f4081a128f3ef132a159825163c8ff9be3c18b6c")
+      str = String(validatingUTF8: ripe.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "f4081a128f3ef132a159825163c8ff9be3c18b6c")
       let whp = try hello.digest(.whirlpool)
-      XCTAssertEqual(whp, "e65ab8bdfb20ff637eea2d807215ae745b86c91c110095be1d93266132f207d06f0d59b45c0d115dcb9f915db18bbdd9ad9fc59dc385e56bdc692362622abc92")
+      str = String(validatingUTF8: whp.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "e65ab8bdfb20ff637eea2d807215ae745b86c91c110095be1d93266132f207d06f0d59b45c0d115dcb9f915db18bbdd9ad9fc59dc385e56bdc692362622abc92")
       let md4 = try hello.digest(.md4)
-      XCTAssertEqual(md4, "6a7cc41dccb56ff8cbec95a3ca7a505c")
+      str = String(validatingUTF8: md4.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "6a7cc41dccb56ff8cbec95a3ca7a505c")
       let md5 = try hello.digest(.md5)
-      XCTAssertEqual(md5, "c921a667409c7ba2858516dfa5e7408c")
+      str = String(validatingUTF8: md5.encode(.hex) ?? []) ?? "fault"
+      XCTAssertEqual(str, "c921a667409c7ba2858516dfa5e7408c")
     } catch {
       XCTFail(error.localizedDescription)
     }
