@@ -69,6 +69,31 @@ class Digestor<T> {
 
 public extension File {
 
+  /// write a random binary file
+  /// - parameter totalBytes: the expected size to generate
+  /// - parameter bufferSize: the buffer size to apply in file writing
+  /// - throws: CryptoError in case of exceptions.
+  public func random(totalBytes: Int, bufferSize: Int = 16384) throws {
+    let szbuf = bufferSize > 0 ? bufferSize : 16384
+    guard totalBytes > 0 else {
+      throw CryptoError(code: -1, msg: "invalid parameter")
+    }
+    self.delete()
+    try self.open(.write)
+    var size = 0
+    var remain = totalBytes
+    repeat {
+      size = min(remain, szbuf)
+      remain -= size
+      let buf = Array<UInt8>(randomCount: size)
+      try self.write(bytes: buf)
+    } while remain > 0
+    self.close()
+    guard self.size == totalBytes else {
+      throw CryptoError(code: -2, msg: "unexpected size \(totalBytes) != \(self.size)")
+    }
+  }
+
   /// Digest a file into a hex based signature
   /// - parameter algorithm: the algorithm of digest, currently implments: sha0/1/224/256/384/512,ripemd160,whirlpool, md4 and md5
   /// - parameter bufferSize: the file digesting buffer, which is subject to the OS. Default is 16k, can be larger or smaller.

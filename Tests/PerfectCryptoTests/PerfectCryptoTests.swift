@@ -452,6 +452,9 @@ class PerfectCryptoTests: XCTestCase {
   func testFiles() {
     let hello = File("/tmp/hello.txt")
     do {
+      try hello.random(totalBytes: 16)
+      try hello.random(totalBytes: 16384)
+      try hello.random(totalBytes: 1048575)
       hello.delete()
       try hello.open(.write)
       for _ in 0 ... 16384 {
