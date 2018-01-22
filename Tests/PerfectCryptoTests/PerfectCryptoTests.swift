@@ -510,7 +510,7 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS2", testCipherCMS2),
 			("testCipherCMS3", testCipherCMS3),
 			("testHMACKey", testHMACKey),
-      ("testFiles", testFiles)
+			("testFiles", testFiles)
 		]
 	}
 }
