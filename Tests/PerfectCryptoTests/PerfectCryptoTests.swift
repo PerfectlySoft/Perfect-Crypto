@@ -1,5 +1,6 @@
 import XCTest
 @testable import PerfectCrypto
+import PerfectLib
 
 class PerfectCryptoTests: XCTestCase {
 	
@@ -447,7 +448,39 @@ class PerfectCryptoTests: XCTestCase {
 			XCTAssert(false, "Failed signing")
 		}
 	}
-	
+
+  func testFiles() {
+    let hello = File("/tmp/hello.txt")
+    do {
+      hello.delete()
+      try hello.open(.write)
+      try hello.write(string: "Hello, world!")
+      hello.close()
+      let sha = try hello.digest(.sha)
+      XCTAssertEqual(sha, "4e4db6f42eb3d948ad86001fc9c042a9d8fa3a29")
+      let sha1 = try hello.digest(.sha1)
+      XCTAssertEqual(sha1, "943a702d06f34599aee1f8da8ef9f7296031d699")
+      let sha224 = try hello.digest(.sha224)
+      XCTAssertEqual(sha224, "8552d8b7a7dc5476cb9e25dee69a8091290764b7f2a64fe6e78e9568")
+      let sha256 = try hello.digest(.sha256)
+      XCTAssertEqual(sha256, "315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3")
+      let sha384 = try hello.digest(.sha384)
+      XCTAssertEqual(sha384, "55bc556b0d2fe0fce582ba5fe07baafff035653638c7ac0d5494c2a64c0bea1cc57331c7c12a45cdbca7f4c34a089eeb")
+      let sha512 = try hello.digest(.sha512)
+      XCTAssertEqual(sha512, "c1527cd893c124773d811911970c8fe6e857d6df5dc9226bd8a160614c0cd963a4ddea2b94bb7d36021ef9d865d5cea294a82dd49a0bb269f51f6e7a57f79421")
+      let ripe = try hello.digest(.ripemd160)
+      XCTAssertEqual(ripe, "58262d1fbdbe4530d8865d3518c6d6e41002610f")
+      let whp = try hello.digest(.whirlpool)
+      XCTAssertEqual(whp, "a1a8703be5312b139b42eb331aa800ccaca0c34d58c6988e44f45489cfb16beb4b6bf0ce20be1db22a10b0e4bb680480a3d2429e6c483085453c098b65852495")
+      let md4 = try hello.digest(.md4)
+      XCTAssertEqual(md4, "0abe9ee1f376caa1bcecad9042f16e73")
+      let md5 = try hello.digest(.md5)
+      XCTAssertEqual(md5, "6cd3556deb0da54bca060b4c39479839")
+    } catch {
+      XCTFail(error.localizedDescription)
+    }
+  }
+
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -474,7 +507,8 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS1", testCipherCMS1),
 			("testCipherCMS2", testCipherCMS2),
 			("testCipherCMS3", testCipherCMS3),
-			("testHMACKey", testHMACKey)
+			("testHMACKey", testHMACKey),
+      ("testFiles", testFiles)
 		]
 	}
 }
