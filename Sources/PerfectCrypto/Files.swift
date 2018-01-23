@@ -82,7 +82,7 @@ public extension File {
   }
 
   /// Digest a file into a hex based signature
-  /// - parameter digest: the algorithm of digest, currently implments: sha0/1/224/256/384/512,ripemd160,whirlpool, md4 and md5
+  /// - parameter digest: the algorithm of digest
   /// - parameter bufferSize: the file digesting buffer, which is subject to the OS. Default is 16k, can be larger or smaller.
   /// - returns: digest bytes
   /// - throws: CryptoError
