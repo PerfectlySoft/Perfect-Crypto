@@ -571,9 +571,6 @@ class PerfectCryptoTests: XCTestCase {
 
   func testFiles() {
     do {
-      try testFileBase64(31)
-      try testFileBase64(32936)
-      try testFileBase64(1048757)
       try testFileDigest(alg: .md4, name: "md4")
       try testFileDigest(alg: .md5, name: "md5")
       try testFileDigest(alg: .sha, name: "sha")
@@ -587,6 +584,9 @@ class PerfectCryptoTests: XCTestCase {
       #else
         try testFileDigest(alg: .ripemd160, name: "rmd160")
       #endif
+      try testFileBase64(31)
+      try testFileBase64(32936)
+      try testFileBase64(1048757)
     } catch {
       XCTFail(error.localizedDescription)
     }
