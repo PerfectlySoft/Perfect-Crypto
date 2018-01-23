@@ -34,23 +34,27 @@ class Digestor<T> {
   }
 
   public func sum(_ file: File) throws -> [UInt8] {
-    try file.open(.read)
-    guard _bufferSize > 0,
+    guard let fd = fopen(file.path, "rd"),
+      _bufferSize > 0,
       _szSignature > 0 else {
       throw CryptoError(code: -1, msg: "invalid parameters")
     }
     defer {
-      file.close()
+      fclose(fd)
     }
     guard 1 == _constructor(_context) else {
       throw CryptoError(code: -2, msg: "context initialization failed")
     }
     var rd = 0
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: _bufferSize)
+    defer {
+      buffer.deallocate(capacity: _bufferSize)
+    }
     repeat {
-      let buf = try file.readSomeBytes(count: _bufferSize)
-      rd = buf.count
+      buffer.initialize(to: 0)
+      rd = fread(buffer, 1, _bufferSize, fd)
       if rd > 0 {
-        guard 1 == _updator(_context, buf, rd) else {
+        guard 1 == _updator(_context, buffer, rd) else {
           throw CryptoError(code: -3, msg: "context cannot update")
         }
       }

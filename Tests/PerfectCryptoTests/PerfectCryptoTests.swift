@@ -1,6 +1,7 @@
 import XCTest
 @testable import PerfectCrypto
 import PerfectLib
+import Foundation
 
 class PerfectCryptoTests: XCTestCase {
 	
@@ -449,49 +450,90 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 
-  func testFiles() {
-    let hello = File("/tmp/hello.txt")
-    do {
-      try hello.random(totalBytes: 16)
-      try hello.random(totalBytes: 16384)
-      try hello.random(totalBytes: 1048575)
-      hello.delete()
-      try hello.open(.write)
-      for _ in 0 ... 16384 {
-        try hello.write(string: "Hello, world!")
+  func runOpenSSL(cmd: String, path: String) throws -> String? {
+    let openssl = "/usr/bin/openssl"
+    #if os(Linux)
+      let fd = popen("\(openssl) \(cmd) \(path)", "r")
+      var rd = 0
+      let _bufferSize = 16384
+      let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: _bufferSize)
+      defer {
+        buffer.deallocate(capacity: _bufferSize)
       }
-      hello.close()
-      var str = ""
-      let sha = try hello.digest(.sha)
-      str = String(validatingUTF8: sha.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "8eb482c0acf5b406c5ef6a8ab9d68e94307f23aa")
-      let sha1 = try hello.digest(.sha1)
-      str = String(validatingUTF8: sha1.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "dbaaadb99a6745f2b3bf10bd16504c4b060ef7bc")
-      let sha224 = try hello.digest(.sha224)
-      str = String(validatingUTF8: sha224.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "3fa319945f4e21d5526283fadad50de4c62bb6466fea5d076fcf4cba")
-      let sha256 = try hello.digest(.sha256)
-      str = String(validatingUTF8: sha256.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "f4742dd75bc9ba2578f22d19eaec18328c5cfa56e7f732211a598d281ab0cbc3")
-      let sha384 = try hello.digest(.sha384)
-      str = String(validatingUTF8: sha384.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "74c70e023f6eb0d944db730cc9a32e30ccbab9f00061f223dbea6c2daca3c090ab0d4356cd6807642902aedac72d1466")
-      let sha512 = try hello.digest(.sha512)
-      str = String(validatingUTF8: sha512.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "ea217829b83213dfd43e2eaf3562ed5d5f8b63ddd2d88ae4b189b5abcecbd8e533e37c8c46261f371e12f8e0e7c532e2e6553e9f76186496a435d118db106d54")
-      let ripe = try hello.digest(.ripemd160)
-      str = String(validatingUTF8: ripe.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "f4081a128f3ef132a159825163c8ff9be3c18b6c")
-      let whp = try hello.digest(.whirlpool)
-      str = String(validatingUTF8: whp.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "e65ab8bdfb20ff637eea2d807215ae745b86c91c110095be1d93266132f207d06f0d59b45c0d115dcb9f915db18bbdd9ad9fc59dc385e56bdc692362622abc92")
-      let md4 = try hello.digest(.md4)
-      str = String(validatingUTF8: md4.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "6a7cc41dccb56ff8cbec95a3ca7a505c")
-      let md5 = try hello.digest(.md5)
-      str = String(validatingUTF8: md5.encode(.hex) ?? []) ?? "fault"
-      XCTAssertEqual(str, "c921a667409c7ba2858516dfa5e7408c")
+      var buf: [UInt8] = []
+      repeat {
+        buffer.initialize(to: 0)
+        rd = fread(buffer, 1, _bufferSize, fd)
+        if rd > 0 {
+          let array = UnsafeBufferPointer<UInt8>(start: buffer, count: rd)
+          buf.append(contentsOf: Array(array))
+        }
+      } while rd > 0
+      pclose(fd)
+    #else
+      let task = Process()
+      task.launchPath = openssl
+      task.arguments = [cmd, path]
+      task.environment = ["PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]
+      let oup = Pipe()
+      task.standardOutput = oup
+      task.launch()
+      task.waitUntilExit()
+      let buf = oup.fileHandleForReading.readDataToEndOfFile()
+    #endif
+    return String(bytes: buf, encoding: .utf8)
+  }
+
+  func openssl(command: String, file: String) throws -> String {
+    guard let output = try runOpenSSL(cmd: command, path: file),
+    let eq = output.index(of: "=") else {
+      throw CryptoError(code: -11, msg: "openssl failed")
+    }
+    let chopped = output[eq..<output.endIndex].dropFirst(2).dropLast()
+    return String(chopped)
+  }
+
+  func validate(file: String, digest: [UInt8], by: String) throws {
+    guard let hex = digest.encode(.hex),
+      let fingerprint = String(validatingUTF8: hex)
+    else {
+      throw CryptoError(code: -22, msg: "heximal encoding failure")
+    }
+    debugPrint("testing", file, by)
+    let answer = try openssl(command: by, file: file)
+    XCTAssertEqual(answer, fingerprint)
+  }
+
+  func testFileDigestBy(size: Int, alg: Digest, name: String) throws {
+    let file = File("/tmp/\(name)-\(size).txt")
+    file.delete()
+    try file.random(totalBytes: size)
+    let dg = try file.digest(alg)
+    debugPrint("prepare", size, "for", file.path)
+    try validate(file: file.path, digest: dg, by: name)
+  }
+
+  func testFileDigest(alg: Digest, name: String) throws {
+    try testFileDigestBy(size: 31, alg: alg, name: name)
+    try testFileDigestBy(size: 15838, alg: alg, name: name)
+    try testFileDigestBy(size: 1048573, alg: alg, name: name)
+  }
+
+  func testFiles() {
+    do {
+      try testFileDigest(alg: .md4, name: "md4")
+      try testFileDigest(alg: .md5, name: "md5")
+      try testFileDigest(alg: .sha, name: "sha")
+      try testFileDigest(alg: .sha1, name: "sha1")
+      #if os(OSX)
+        try testFileDigest(alg: .sha224, name: "sha224")
+        try testFileDigest(alg: .sha256, name: "sha256")
+        try testFileDigest(alg: .sha384, name: "sha384")
+        try testFileDigest(alg: .sha512, name: "sha512")
+        try testFileDigest(alg: .whirlpool, name: "whirlpool")
+      #else
+        try testFileDigest(alg: .ripemd160, name: "rmd160")
+      #endif
     } catch {
       XCTFail(error.localizedDescription)
     }
