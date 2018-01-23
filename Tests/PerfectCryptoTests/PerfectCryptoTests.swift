@@ -3,6 +3,43 @@ import XCTest
 import PerfectLib
 import Foundation
 
+extension File: Equatable {
+  public static func == (lhs: File, rhs: File) -> Bool {
+    guard lhs.size == rhs.size,
+    let x = fopen(lhs.path, "rb"),
+    let y = fopen(rhs.path, "rb")
+      else {
+      return false
+    }
+    defer {
+      fclose(x)
+      fclose(y)
+    }
+    let szbuf = 16384
+    var rx = 0
+    var ry = 0
+    let bx = UnsafeMutablePointer<UInt8>.allocate(capacity: szbuf)
+    let by = UnsafeMutablePointer<UInt8>.allocate(capacity: szbuf)
+    defer {
+      bx.deallocate(capacity: szbuf)
+      by.deallocate(capacity: szbuf)
+    }
+    repeat {
+      bx.initialize(to: 0)
+      by.initialize(to: 0)
+      rx = fread(bx, 1, szbuf, x)
+      ry = fread(by, 1, szbuf, y)
+      guard rx == ry else { return false }
+      if rx > 0 {
+        guard 0 == memcmp(bx, by, rx) else {
+          return false
+        }
+      }
+    } while rx > 0 && ry > 0
+    return true
+  }
+}
+
 class PerfectCryptoTests: XCTestCase {
 	
 	override func setUp() {
@@ -450,10 +487,10 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 
-  func runOpenSSL(cmd: String, path: String) throws -> String? {
-    let openssl = "/usr/bin/openssl"
+  func runProc(cmd: String, args: [String]) throws -> String? {
     #if os(Linux)
-      let fd = popen("\(openssl) \(cmd) \(path)", "r")
+      let command:[String] = [cmd] + args
+      let fd = popen(command.joined(separator: " "), "r")
       var rd = 0
       let _bufferSize = 16384
       let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: _bufferSize)
@@ -472,8 +509,8 @@ class PerfectCryptoTests: XCTestCase {
       pclose(fd)
     #else
       let task = Process()
-      task.launchPath = openssl
-      task.arguments = [cmd, path]
+      task.launchPath = cmd
+      task.arguments = args
       task.environment = ["PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]
       let oup = Pipe()
       task.standardOutput = oup
@@ -485,7 +522,7 @@ class PerfectCryptoTests: XCTestCase {
   }
 
   func openssl(command: String, file: String) throws -> String {
-    guard let output = try runOpenSSL(cmd: command, path: file),
+    guard let output = try runProc(cmd: "/usr/bin/openssl", args: [command, file]),
     let eq = output.index(of: "=") else {
       throw CryptoError(code: -11, msg: "openssl failed")
     }
@@ -519,8 +556,24 @@ class PerfectCryptoTests: XCTestCase {
     try testFileDigestBy(size: 1048573, alg: alg, name: name)
   }
 
+  func testFileBase64(_ size: Int) throws {
+    let sourcePath = "/tmp/base64source.dat"
+    let targetPath = "/tmp/base64target.txt"
+    let targetPath2 = "/tmp/base64target2.txt"
+    let source = File(sourcePath)
+    try source.random(totalBytes: size)
+    let target = File(targetPath)
+    try source.encode(.base64, to: target)
+    _ = try runProc(cmd: "/usr/bin/openssl", args: ["enc", "-base64", "-in", sourcePath, "-out", targetPath2])
+    let answer = File(targetPath2)
+    XCTAssertTrue(answer == target)
+  }
+
   func testFiles() {
     do {
+      try testFileBase64(31)
+      try testFileBase64(32936)
+      try testFileBase64(1048757)
       try testFileDigest(alg: .md4, name: "md4")
       try testFileDigest(alg: .md5, name: "md5")
       try testFileDigest(alg: .sha, name: "sha")

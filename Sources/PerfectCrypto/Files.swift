@@ -22,7 +22,7 @@ import COpenSSL
 import PerfectLib
 import Foundation
 
-class Digestor<T> {
+fileprivate class Digestor<T> {
   var _bufferSize: Int = 0
   var _szSignature: Int = 0
   let _context: UnsafeMutablePointer<T>
@@ -72,6 +72,38 @@ class Digestor<T> {
 }
 
 public extension File {
+
+  public func encode(_ encoding: EncodingS, to: File, bufferSize: Int = 16384) throws {
+    guard encoding == .base64 else {
+      throw CryptoError(code: -1, msg: "unsupported")
+    }
+    guard let b64 = BIO_new(BIO_f_base64()) else {
+      throw CryptoError(code: -2, msg: "byte io fault")
+    }
+    guard let source = fopen(self.path, "rb"),
+      let target = fopen(to.path, "wb"),
+      let bio = BIO_new_fp(target, BIO_NOCLOSE) else {
+      throw CryptoError(code: -3, msg: "invalid parameter")
+    }
+    _ = BIO_push(b64, bio)
+    var rd = 0
+    var wd = Int32(0)
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+    defer {
+      buffer.deallocate(capacity: bufferSize)
+    }
+    repeat {
+      buffer.initialize(to: 0)
+      rd = fread(buffer, 1, bufferSize, source)
+      if rd > 0 {
+        wd = BIO_write(b64, buffer, Int32(rd))
+      }
+    } while rd > 0 && wd > 0
+    _ = BIO_ctrl(b64,BIO_CTRL_FLUSH, 0, nil)
+    BIO_free_all(b64)
+    fclose(source)
+    fclose(target)
+  }
 
   /// write a random binary file
   /// - parameter totalBytes: the expected size to generate
