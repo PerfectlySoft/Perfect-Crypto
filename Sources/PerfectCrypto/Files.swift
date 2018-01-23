@@ -89,25 +89,13 @@ public extension File {
   public func digest(_ digest: Digest, bufferSize: Int = 16384) throws -> [UInt8] {
     let filter = DigestFilter(digest)
     let chain = filter.chain(NullIO())
-    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
-    defer {
-      buffer.deallocate(capacity: bufferSize)
-    }
-    guard
-      let source = fopen(self.path, "rb")
-      else {
-        throw CryptoError(code: -1, msg: "invalid parameter")
-    }
-    var rd = 0
-    var wd = 0
-    repeat {
-      buffer.initialize(to: 0)
-      rd = fread(buffer, 1, bufferSize, source)
-      if rd > 0 {
-        let raw = UnsafeRawBufferPointer(start: buffer, count: rd)
-        wd = try chain.write(bytes: raw)
+    try self.open()
+    while let buf = try? self.readSomeBytes(count: bufferSize) {
+      let rd = try buf.withUnsafeBytes { pointer in
+        return try chain.write(bytes: pointer)
       }
-    } while rd > 0 && wd > 0
+      if rd < 1 { break }
+    }
     try chain.flush()
     let validLength = digest.length
     let ret = UnsafeMutableRawBufferPointer.allocate(count: validLength)
