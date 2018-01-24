@@ -19,6 +19,35 @@
 //
 
 import Foundation
+import PerfectLib
+
+public extension File {
+  /// Digest a file into a hex based signature
+  /// - parameter digest: the algorithm of digest
+  /// - parameter bufferSize: the file digesting buffer, which is subject to the OS. Default is 16k, can be larger or smaller.
+  /// - returns: digest bytes
+  /// - throws: CryptoError
+  public func digest(_ digest: Digest, bufferSize: Int = 16384) throws -> [UInt8] {
+    let filter = DigestFilter(digest)
+    let chain = filter.chain(NullIO())
+    try self.open()
+    while let buf = try? self.readSomeBytes(count: bufferSize) {
+      let rd = try buf.withUnsafeBytes { pointer in
+        return try chain.write(bytes: pointer)
+      }
+      if rd < 1 { break }
+    }
+    self.close()
+    try chain.flush()
+    let validLength = digest.length
+    let ret = UnsafeMutableRawBufferPointer.allocate(count: validLength)
+    guard try filter.get(ret) == validLength else {
+      ret.deallocate()
+      return []
+    }
+    return ret.map { $0 }
+  }
+}
 
 public extension String {
 	/// Construct a string from a UTF8 character array.

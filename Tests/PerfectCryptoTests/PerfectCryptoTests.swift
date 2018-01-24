@@ -1,5 +1,34 @@
 import XCTest
 @testable import PerfectCrypto
+import PerfectLib
+import Foundation
+
+extension File {
+  /// write a random binary file
+  /// - parameter totalBytes: the expected size to generate
+  /// - parameter bufferSize: the buffer size to apply in file writing
+  /// - throws: CryptoError in case of exceptions.
+  public func random(totalBytes: Int, bufferSize: Int = 16384) throws {
+    let szbuf = bufferSize > 0 ? bufferSize : 16384
+    guard totalBytes > 0 else {
+      throw CryptoError(code: -1, msg: "invalid parameter")
+    }
+    self.delete()
+    try self.open(.write)
+    var size = 0
+    var remain = totalBytes
+    repeat {
+      size = min(remain, szbuf)
+      remain -= size
+      let buf = Array<UInt8>(randomCount: size)
+      try self.write(bytes: buf)
+    } while remain > 0
+    self.close()
+    guard self.size == totalBytes else {
+      throw CryptoError(code: -2, msg: "unexpected size \(totalBytes) != \(self.size)")
+    }
+  }
+}
 
 class PerfectCryptoTests: XCTestCase {
 	
@@ -447,7 +476,96 @@ class PerfectCryptoTests: XCTestCase {
 			XCTAssert(false, "Failed signing")
 		}
 	}
-	
+
+  func runProc(cmd: String, args: [String]) throws -> String? {
+    #if os(Linux)
+      let command:[String] = [cmd] + args
+      let fd = popen(command.joined(separator: " "), "r")
+      var rd = 0
+      let _bufferSize = 16384
+      let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: _bufferSize)
+      defer {
+        buffer.deallocate(capacity: _bufferSize)
+      }
+      var buf: [UInt8] = []
+      repeat {
+        buffer.initialize(to: 0)
+        rd = fread(buffer, 1, _bufferSize, fd)
+        if rd > 0 {
+          let array = UnsafeBufferPointer<UInt8>(start: buffer, count: rd)
+          buf.append(contentsOf: Array(array))
+        }
+      } while rd > 0
+      pclose(fd)
+    #else
+      let task = Process()
+      task.launchPath = cmd
+      task.arguments = args
+      task.environment = ["PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]
+      let oup = Pipe()
+      task.standardOutput = oup
+      task.launch()
+      task.waitUntilExit()
+      let buf = oup.fileHandleForReading.readDataToEndOfFile()
+    #endif
+    return String(bytes: buf, encoding: .utf8)
+  }
+
+  func openssl(command: String, file: String) throws -> String {
+    guard let output = try runProc(cmd: "/usr/bin/openssl", args: [command, file]),
+    let eq = output.index(of: "=") else {
+      throw CryptoError(code: -11, msg: "openssl failed")
+    }
+    let chopped = output[eq..<output.endIndex].dropFirst(2).dropLast()
+    return String(chopped)
+  }
+
+  func validate(file: String, digest: [UInt8], by: String) throws {
+    guard let hex = digest.encode(.hex),
+      let fingerprint = String(validatingUTF8: hex)
+    else {
+      throw CryptoError(code: -22, msg: "heximal encoding failure")
+    }
+    debugPrint("testing", file, by)
+    let answer = try openssl(command: by, file: file)
+    XCTAssertEqual(answer, fingerprint)
+  }
+
+  func testFileDigestBy(size: Int, alg: Digest, name: String) throws {
+    let file = File("/tmp/\(name)-\(size).txt")
+    file.delete()
+    try file.random(totalBytes: size)
+    let dg = try file.digest(alg)
+    debugPrint("prepare", size, "for", file.path)
+    try validate(file: file.path, digest: dg, by: name)
+  }
+
+  func testFileDigest(alg: Digest, name: String) throws {
+    try testFileDigestBy(size: 31, alg: alg, name: name)
+    try testFileDigestBy(size: 15838, alg: alg, name: name)
+    try testFileDigestBy(size: 1048573, alg: alg, name: name)
+  }
+
+  func testFiles() {
+    do {
+      try testFileDigest(alg: .md4, name: "md4")
+      try testFileDigest(alg: .md5, name: "md5")
+      try testFileDigest(alg: .sha, name: "sha")
+      try testFileDigest(alg: .sha1, name: "sha1")
+      #if os(OSX)
+        try testFileDigest(alg: .sha224, name: "sha224")
+        try testFileDigest(alg: .sha256, name: "sha256")
+        try testFileDigest(alg: .sha384, name: "sha384")
+        try testFileDigest(alg: .sha512, name: "sha512")
+        try testFileDigest(alg: .whirlpool, name: "whirlpool")
+      #else
+        try testFileDigest(alg: .ripemd160, name: "rmd160")
+      #endif
+    } catch {
+      XCTFail(error.localizedDescription)
+    }
+  }
+
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -474,7 +592,8 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS1", testCipherCMS1),
 			("testCipherCMS2", testCipherCMS2),
 			("testCipherCMS3", testCipherCMS3),
-			("testHMACKey", testHMACKey)
+			("testHMACKey", testHMACKey),
+			("testFiles", testFiles)
 		]
 	}
 }
