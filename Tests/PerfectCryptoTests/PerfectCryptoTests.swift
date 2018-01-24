@@ -3,41 +3,7 @@ import XCTest
 import PerfectLib
 import Foundation
 
-extension File: Equatable {
-  public static func == (lhs: File, rhs: File) -> Bool {
-    guard lhs.size == rhs.size,
-    let x = fopen(lhs.path, "rb"),
-    let y = fopen(rhs.path, "rb")
-      else {
-      return false
-    }
-    defer {
-      fclose(x)
-      fclose(y)
-    }
-    let szbuf = 16384
-    var rx = 0
-    var ry = 0
-    let bx = UnsafeMutablePointer<UInt8>.allocate(capacity: szbuf)
-    let by = UnsafeMutablePointer<UInt8>.allocate(capacity: szbuf)
-    defer {
-      bx.deallocate(capacity: szbuf)
-      by.deallocate(capacity: szbuf)
-    }
-    repeat {
-      bx.initialize(to: 0)
-      by.initialize(to: 0)
-      rx = fread(bx, 1, szbuf, x)
-      ry = fread(by, 1, szbuf, y)
-      guard rx == ry else { return false }
-      if rx > 0 {
-        guard 0 == memcmp(bx, by, rx) else {
-          return false
-        }
-      }
-    } while rx > 0 && ry > 0
-    return true
-  }
+extension File {
   /// write a random binary file
   /// - parameter totalBytes: the expected size to generate
   /// - parameter bufferSize: the buffer size to apply in file writing
