@@ -38,6 +38,30 @@ extension File: Equatable {
     } while rx > 0 && ry > 0
     return true
   }
+  /// write a random binary file
+  /// - parameter totalBytes: the expected size to generate
+  /// - parameter bufferSize: the buffer size to apply in file writing
+  /// - throws: CryptoError in case of exceptions.
+  public func random(totalBytes: Int, bufferSize: Int = 16384) throws {
+    let szbuf = bufferSize > 0 ? bufferSize : 16384
+    guard totalBytes > 0 else {
+      throw CryptoError(code: -1, msg: "invalid parameter")
+    }
+    self.delete()
+    try self.open(.write)
+    var size = 0
+    var remain = totalBytes
+    repeat {
+      size = min(remain, szbuf)
+      remain -= size
+      let buf = Array<UInt8>(randomCount: size)
+      try self.write(bytes: buf)
+    } while remain > 0
+    self.close()
+    guard self.size == totalBytes else {
+      throw CryptoError(code: -2, msg: "unexpected size \(totalBytes) != \(self.size)")
+    }
+  }
 }
 
 class PerfectCryptoTests: XCTestCase {
@@ -556,19 +580,6 @@ class PerfectCryptoTests: XCTestCase {
     try testFileDigestBy(size: 1048573, alg: alg, name: name)
   }
 
-  func testFileBase64(_ size: Int) throws {
-    let sourcePath = "/tmp/base64source.dat"
-    let targetPath = "/tmp/base64target.txt"
-    let targetPath2 = "/tmp/base64target2.txt"
-    let source = File(sourcePath)
-    try source.random(totalBytes: size)
-    let target = File(targetPath)
-    try source.encode(.base64, to: target)
-    _ = try runProc(cmd: "/usr/bin/openssl", args: ["enc", "-base64", "-in", sourcePath, "-out", targetPath2])
-    let answer = File(targetPath2)
-    XCTAssertTrue(answer == target)
-  }
-
   func testFiles() {
     do {
       try testFileDigest(alg: .md4, name: "md4")
@@ -584,9 +595,6 @@ class PerfectCryptoTests: XCTestCase {
       #else
         try testFileDigest(alg: .ripemd160, name: "rmd160")
       #endif
-      try testFileBase64(31)
-      try testFileBase64(32936)
-      try testFileBase64(1048757)
     } catch {
       XCTFail(error.localizedDescription)
     }
