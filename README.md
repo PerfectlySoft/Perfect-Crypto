@@ -256,7 +256,7 @@ public extension UnsafeRawBufferPointer {
 	             salt: UnsafeRawBufferPointer,
 	             keyIterations: Int = 2048,
 	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer?
-   /// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
+   	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func decrypt(_ cipher: Cipher,
 	             password: UnsafeRawBufferPointer,
