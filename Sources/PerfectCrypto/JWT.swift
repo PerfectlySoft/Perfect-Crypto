@@ -18,6 +18,7 @@
 //
 
 import PerfectLib
+import Foundation
 
 private let dot = UInt8(46)
 private let jwtEncoding = Encoding.base64url
@@ -62,9 +63,9 @@ public struct JWTVerifier {
 		guard decoded.count == 3 else {
 			return nil
 		}
-		self.headerBytes = decoded[0]
-		self.payloadBytes = decoded[1]
-		self.signatureBytes = decoded[2]
+		headerBytes = decoded[0]
+		payloadBytes = decoded[1]
+		signatureBytes = decoded[2]
 	}
 	
 	/// Verify the token based on the indicated algorithm and HMAC key.
@@ -112,23 +113,20 @@ public struct JWTVerifier {
 /// Creates and signs new JWT tokens.
 public struct JWTCreator {
 	let payloadBytes: [UInt8]
-	
-	/// Creates a new JWT token given a payload.
+	/// Creates a new JWT given a payload.
 	/// The payload can then be signed to generate a JWT token string.
 	public init?(payload: [String:Any]) {
 		guard let json = try? payload.jsonEncodedString() else {
 			return nil
 		}
-		self.payloadBytes = Array(json.utf8)
+		payloadBytes = Array(json.utf8)
 	}
-	
 	/// Sign and return a new JWT token string using an HMAC key.
 	/// Additional headers can be optionally provided.
 	/// Throws a JWT.Error.signingError if there is a problem generating the token string.
 	public func sign(alg: JWT.Alg, key: String, headers: [String:Any] = [:]) throws -> String {
 		return try sign(alg: alg, key: HMACKey(key), headers: headers)
 	}
-	
 	/// Sign and return a new JWT token string using the given key.
 	/// Additional headers can be optionally provided.
 	/// The key type must be compatible with the indicated `algo`.
@@ -141,7 +139,7 @@ public struct JWTCreator {
 		}
 		let headerBytes = Array(try useHeaders.jsonEncodedString().utf8)
 		guard let h64 = headerBytes.encode(jwtEncoding),
-			let p64 = self.payloadBytes.encode(jwtEncoding) else {
+			let p64 = payloadBytes.encode(jwtEncoding) else {
 				throw JWT.Error.signingError("Internal error. Unable to base64url encode header and payload.")
 		}
 		let part1 = h64 + [dot] + p64
@@ -167,6 +165,25 @@ public struct JWTCreator {
 	}
 }
 
+public extension JWTCreator {
+	/// Create a new JWT given a Codable object.
+	/// The payload can then be signed to generate a JWT token string.
+	init<T: Codable>(payload: T) throws {
+		let json = try JSONEncoder().encode(payload)
+		payloadBytes = Array(json)
+	}
+}
+
+public extension JWTVerifier {
+	func verify<T: Codable>(algo: JWT.Alg, key: Key, as: T.Type) throws -> T {
+		try verify(algo: algo, key: key)
+		return try JSONDecoder().decode(`as`, from: Data(bytes: payloadBytes))
+	}
+	func verify<T: Codable>(algo: JWT.Alg, key: String, as: T.Type) throws -> T {
+		try verify(algo: algo, key: key)
+		return try JSONDecoder().decode(`as`, from: Data(bytes: payloadBytes))
+	}
+}
 
 extension JWT.Alg {
 	init?(_ string: String) {
