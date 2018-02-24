@@ -322,26 +322,28 @@ class PerfectCryptoTests: XCTestCase {
 	}
 	
 	func testJWTCreate1() {
-		let tstPayload = ["sub": "1234567890", "name": "John Doe", "admin": true] as [String : Any]
+		struct JWTObj: Codable {
+			let sub: String
+			let name: String
+			let admin: Bool
+		}
+		let tstPayload = JWTObj(sub: "1234567890", name: "John Doe", admin: true)
 		let secret = "secret"
 		let name = "John Doe"
 		for _ in 0..<30 {
-		  guard let jwt1 = JWTCreator(payload: tstPayload) else {
-			  return XCTAssert(false)
-		  }
-		  do {
-			  let token = try jwt1.sign(alg: .hs256, key: secret)
-			  
-			  guard let jwt = JWTVerifier(token) else {
-				  return XCTAssert(false)
-			  }
-			  try jwt.verify(algo: .hs256, key: HMACKey(secret))
-				  
-			  let fndName = jwt.payload["name"] as? String
-			  XCTAssert(name == fndName!)
-		  } catch {
-			  XCTAssert(false, "\(error)")
-		  }
+			do {
+				let jwt1 = try JWTCreator(payload: tstPayload)
+				let token = try jwt1.sign(alg: .hs256, key: secret)
+				
+				guard let jwt = JWTVerifier(token) else {
+					return XCTAssert(false)
+				}
+				let obj = try jwt.verify(algo: .hs256, key: HMACKey(secret), as: JWTObj.self)
+				let fndName = obj.name
+				XCTAssertEqual(name, fndName)
+			} catch {
+				XCTFail("\(error)")
+			}
 		}
 	}
 	
