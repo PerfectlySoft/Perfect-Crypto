@@ -481,6 +481,7 @@ class PerfectCryptoTests: XCTestCase {
 	
 	func testKeyGen() {
 		do {
+			let bits = 1024
 			struct JSONPayload: Codable {
 				let id: Foundation.UUID
 				let expires: Int
@@ -488,11 +489,13 @@ class PerfectCryptoTests: XCTestCase {
 			let payload = JSONPayload(id: UUID(), expires: time(nil) + 3600)
 			let jwt = try JWTCreator(payload: payload)
 			do {
-				let keyPair = try PEMKey(type: .rsa, bits: 4096)
+				let keyPair = try PEMKey(type: .rsa, bits: bits)
 				guard let pubKey = keyPair.publicKey,
 					let privKey = keyPair.privateKey else {
 					return XCTFail("Unable to get pub/priv keys")
 				}
+				XCTAssert(keyPair.publicKeyString!.hasPrefix("-----BEGIN RSA PUBLIC KEY-----"))
+				XCTAssert(keyPair.privateKeyString!.hasPrefix("-----BEGIN RSA PRIVATE KEY-----"))
 				let signed = try jwt.sign(alg: .rs256, key: privKey)
 				guard let jwtVer = JWTVerifier(signed) else {
 					return XCTFail("JWT verify failed")
@@ -500,19 +503,23 @@ class PerfectCryptoTests: XCTestCase {
 				let obj = try jwtVer.verify(algo: .rs256, key: pubKey, as: JSONPayload.self)
 				XCTAssertEqual(obj.id, payload.id)
 			}
-//			do {
-//				let keyPair = try PEMKey(type: .dsa, bits: 4096)
-//				let pubKey = keyPair.publicKeyString
-//				let privKey = keyPair.privateKeyString
-//				print("\(pubKey)")
-//				print("\(privKey)")
-//			}
 			do {
-				let keyPair = try PEMKey(type: .ec, bits: 4096)
+				let keyPair = try PEMKey(type: .dsa, bits: bits)
+				let pubKey = keyPair.publicKey
+				let privKey = keyPair.privateKey
+				XCTAssertNotNil(pubKey)
+				XCTAssertNotNil(privKey)
+				XCTAssert(keyPair.publicKeyString!.hasPrefix("-----BEGIN PUBLIC KEY-----"))
+				XCTAssert(keyPair.privateKeyString!.hasPrefix("-----BEGIN DSA PRIVATE KEY-----"))
+			}
+			do {
+				let keyPair = try PEMKey(type: .ec, bits: bits)
 				guard let pubKey = keyPair.publicKey,
 					let privKey = keyPair.privateKey else {
 						return XCTFail("Unable to get pub/priv keys")
 				}
+				XCTAssert(keyPair.publicKeyString!.hasPrefix("-----BEGIN PUBLIC KEY-----"))
+				XCTAssert(keyPair.privateKeyString!.hasPrefix("-----BEGIN EC PRIVATE KEY-----"))
 				let signed = try jwt.sign(alg: .es256, key: privKey)
 				print(signed)
 				guard let jwtVer = JWTVerifier(signed) else {

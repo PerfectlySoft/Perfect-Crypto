@@ -78,40 +78,118 @@ public class PEMKey: Key {
 	public init(source original: String) throws {
 		let source = PEMKey.cleanSource(original)
 		var kp: UnsafeMutablePointer<EVP_PKEY>? = nil
-		var f = MemoryIO(source)
-		PEM_read_bio_PrivateKey(f.bio, &kp, nil, nil)
-		if nil == kp {
-			f = MemoryIO(source)
-			PEM_read_bio_PUBKEY(f.bio, &kp, nil, nil)
+		func tryOne(_ call: (MemoryIO) throws -> ()) throws -> Bool {
+			let f = MemoryIO(source)
+			try call(f)
+			return nil != kp
 		}
-		if nil == kp {
-			f = MemoryIO(source)
+		do { // rsa
+			if try tryOne({
+				f in
+				if let rsa = PEM_read_bio_RSAPrivateKey(f.bio, nil, nil, nil) {
+					kp = EVP_PKEY_new()
+					guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_RSA, rsa) else {
+						RSA_free(rsa)
+						EVP_PKEY_free(kp)
+						throw KeyError("No public or private key could be read. Could not fetch RSA private key.")
+					}
+				}
+			}) {
+				super.init(kp)
+				return
+			}
+			if try tryOne({
+				f in
+				if let rsa = PEM_read_bio_RSAPublicKey(f.bio, nil, nil, nil) {
+					kp = EVP_PKEY_new()
+					guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_RSA, rsa) else {
+						RSA_free(rsa)
+						EVP_PKEY_free(kp)
+						throw KeyError("No public or private key could be read. Could not fetch RSA public key.")
+					}
+				}
+			}) {
+				super.init(kp)
+				return
+			}
+		}
+		do { // dsa
+			if try tryOne({
+				f in
+				if let dsa = PEM_read_bio_DSAPrivateKey(f.bio, nil, nil, nil) {
+					kp = EVP_PKEY_new()
+					guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_DSA, dsa) else {
+						DSA_free(dsa)
+						EVP_PKEY_free(kp)
+						throw KeyError("No public or private key could be read. Could not fetch DSA private key.")
+					}
+				}
+			}) {
+				super.init(kp)
+				return
+			}
+			if try tryOne({
+				f in
+				if let dsa = PEM_read_bio_DSA_PUBKEY(f.bio, nil, nil, nil) {
+					kp = EVP_PKEY_new()
+					guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_DSA, dsa) else {
+						DSA_free(dsa)
+						EVP_PKEY_free(kp)
+						throw KeyError("No public or private key could be read. Could not fetch DSA public key.")
+					}
+				}
+			}) {
+				super.init(kp)
+				return
+			}
+		}
+		do { // ec
+			if try tryOne({
+				f in
+				if let ec = PEM_read_bio_ECPrivateKey(f.bio, nil, nil, nil) {
+					kp = EVP_PKEY_new()
+					guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_EC, UnsafeMutableRawPointer(ec)) else {
+						EC_KEY_free(ec)
+						EVP_PKEY_free(kp)
+						throw KeyError("No public or private key could be read. Could not fetch EC private key.")
+					}
+				}
+			}) {
+				super.init(kp)
+				return
+			}
+			if try tryOne({
+				f in
+				if let ec = PEM_read_bio_EC_PUBKEY(f.bio, nil, nil, nil) {
+					kp = EVP_PKEY_new()
+					guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_EC, UnsafeMutableRawPointer(ec)) else {
+						EC_KEY_free(ec)
+						EVP_PKEY_free(kp)
+						throw KeyError("No public or private key could be read. Could not fetch EC public key.")
+					}
+				}
+			}) {
+				super.init(kp)
+				return
+			}
+		}
+		if try tryOne({
+			f in
 			if let x509 = PEM_read_bio_X509(f.bio, nil, nil, nil) {
 				kp = X509_get_pubkey(x509)
 				X509_free(x509)
 			}
+		}) {
+			super.init(kp)
+			return
 		}
-		if nil == kp {
-			f = MemoryIO(source)
-			if let rsa = PEM_read_bio_RSAPrivateKey(f.bio, nil, nil, nil) {
-				kp = EVP_PKEY_new()
-				guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_RSA, rsa) else {
-					RSA_free(rsa)
-					EVP_PKEY_free(kp)
-					throw KeyError("No public or private key could be read. Could not fetch RSA private key.")
-				}
-			}
+		if try tryOne({	PEM_read_bio_PrivateKey($0.bio, &kp, nil, nil) }) {
+			super.init(kp)
+			return
 		}
-		if nil == kp {
-			f = MemoryIO(source)
-			if let rsa = PEM_read_bio_RSAPublicKey(f.bio, nil, nil, nil) {
-				kp = EVP_PKEY_new()
-				guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_RSA, rsa) else {
-					RSA_free(rsa)
-					EVP_PKEY_free(kp)
-					throw KeyError("No public or private key could be read. Could not fetch RSA private key.")
-				}
-			}
+		if try tryOne({	PEM_read_bio_PUBKEY($0.bio, &kp, nil, nil) }) {
+			super.init(kp)
+			return
 		}
 		if nil == kp {
 			throw KeyError("No public or private key could be read.")
