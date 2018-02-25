@@ -191,10 +191,7 @@ public class PEMKey: Key {
 			super.init(kp)
 			return
 		}
-		if nil == kp {
-			throw KeyError("No public or private key could be read.")
-		}
-		super.init(kp)
+		throw KeyError("No public or private key could be read.")
 	}
 	
 	public init(type: PEMKeyType, bits: Int, exp: Int = RSA_F4) throws {
