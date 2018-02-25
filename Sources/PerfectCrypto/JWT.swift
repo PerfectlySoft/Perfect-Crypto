@@ -183,6 +183,9 @@ public extension JWTVerifier {
 		try verify(algo: algo, key: key)
 		return try JSONDecoder().decode(`as`, from: Data(bytes: payloadBytes))
 	}
+	func decode<T: Codable>(as: T.Type) throws -> T {
+		return try JSONDecoder().decode(`as`, from: Data(bytes: payloadBytes))
+	}
 }
 
 extension JWT.Alg {
