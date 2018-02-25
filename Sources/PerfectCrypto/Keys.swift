@@ -46,7 +46,6 @@ public class HMACKey: Key {
 			                            Int32(b.count))
 		})
 	}
-	
 	public init(_ key: [UInt8]) {
 		super.init(EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, nil,
 			                            UnsafePointer(key),
@@ -54,7 +53,24 @@ public class HMACKey: Key {
 	}
 }
 
+public enum PEMKeyType {
+	case rsa, dsa, ec
+}
+
 public class PEMKey: Key {
+	var type: PEMKeyType {
+		let typeId = EVP_PKEY_base_id(pkey)
+		switch typeId {
+		case EVP_PKEY_RSA: return .rsa
+		case EVP_PKEY_DSA: return .dsa
+		case EVP_PKEY_EC: return .ec
+		default:
+			return .rsa
+		}
+	}
+	convenience init(kp: UnsafeMutablePointer<EVP_PKEY>?) {
+		self.init(kp: kp)
+	}
 	public convenience init(pemPath: String) throws {
 		try self.init(source: try File(pemPath).readString())
 	}
@@ -87,7 +103,51 @@ public class PEMKey: Key {
 			}
 		}
 		if nil == kp {
+			f = MemoryIO(source)
+			if let rsa = PEM_read_bio_RSAPublicKey(f.bio, nil, nil, nil) {
+				kp = EVP_PKEY_new()
+				guard 1 == EVP_PKEY_assign(kp, EVP_PKEY_RSA, rsa) else {
+					RSA_free(rsa)
+					EVP_PKEY_free(kp)
+					throw KeyError("No public or private key could be read. Could not fetch RSA private key.")
+				}
+			}
+		}
+		if nil == kp {
 			throw KeyError("No public or private key could be read.")
+		}
+		super.init(kp)
+	}
+	
+	public init(type: PEMKeyType, bits: Int, exp: Int = RSA_F4) throws {
+		var kp: UnsafeMutablePointer<EVP_PKEY>?
+		switch type {
+		case .rsa:
+			let ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nil)
+			guard 1 == EVP_PKEY_keygen_init(ctx),
+				1 == EVP_PKEY_CTX_ctrl(ctx, EVP_PKEY_RSA, EVP_PKEY_OP_KEYGEN,
+										 EVP_PKEY_CTRL_RSA_KEYGEN_BITS, Int32(bits), nil),
+				1 == EVP_PKEY_keygen(ctx, &kp) else {
+				try CryptoError.throwOpenSSLError()
+			}
+		case .dsa:
+			let dsa = DSA_new()
+			DSA_generate_parameters_ex(dsa, Int32(bits), nil, 0, nil, nil, nil)
+			guard 1 == DSA_generate_key(dsa) else {
+				try CryptoError.throwOpenSSLError()
+			}
+			kp = EVP_PKEY_new()
+			EVP_PKEY_assign(kp, EVP_PKEY_DSA, dsa)
+		case .ec:
+			let curve = "secp521r1"
+			let eccgrp = OBJ_txt2nid(curve)
+			let ecc = EC_KEY_new_by_curve_name(eccgrp)
+			EC_KEY_set_asn1_flag(ecc, OPENSSL_EC_NAMED_CURVE)
+			guard 1 == EC_KEY_generate_key(ecc) else {
+				try CryptoError.throwOpenSSLError()
+			}
+			kp = EVP_PKEY_new()
+			EVP_PKEY_assign(kp, EVP_PKEY_EC, UnsafeMutableRawPointer(ecc))
 		}
 		super.init(kp)
 	}
@@ -130,3 +190,65 @@ public class PEMKey: Key {
 		return accum
 	}
 }
+
+extension PEMKey: CustomStringConvertible {
+	public var description: String {
+		let mem = MemoryIO()
+		PEM_write_bio_PrivateKey(mem.bio, pkey, nil, nil, 0, nil, nil)
+		PEM_write_bio_PUBKEY(mem.bio, pkey)
+		return String(validatingUTF8: mem.memory) ?? ""
+	}
+	public var privateKeyString: String? {
+		let mem = MemoryIO()
+		let result: Int32
+		switch type {
+		case .rsa:
+			let rsa = EVP_PKEY_get1_RSA(pkey)
+			result = PEM_write_bio_RSAPrivateKey(mem.bio, rsa, nil, nil, 0, nil, nil)
+		case .dsa:
+			let dsa = EVP_PKEY_get1_DSA(pkey)
+			result = PEM_write_bio_DSAPrivateKey(mem.bio, dsa, nil, nil, 0, nil, nil)
+		case .ec:
+			let ec = EVP_PKEY_get1_EC_KEY(pkey)
+			result = PEM_write_bio_ECPrivateKey(mem.bio, ec, nil, nil, 0, nil, nil)
+		}
+		guard 1 == result else { //1 == PEM_write_bio_PUBKEY(mem.bio, pkey) else {
+			return nil
+		}
+		return String(validatingUTF8: mem.memory)
+	}
+	public var publicKeyString: String? {
+		let mem = MemoryIO()
+		let result: Int32
+		switch type {
+		case .rsa:
+			let rsa = EVP_PKEY_get1_RSA(pkey)
+			result = PEM_write_bio_RSAPublicKey(mem.bio, rsa)
+		case .dsa:
+			let dsa = EVP_PKEY_get1_DSA(pkey)
+			result = PEM_write_bio_DSA_PUBKEY(mem.bio, dsa)
+		case .ec:
+			let ec = EVP_PKEY_get1_EC_KEY(pkey)
+			result = PEM_write_bio_EC_PUBKEY(mem.bio, ec)
+		}
+		guard 1 == result else { //1 == PEM_write_bio_PUBKEY(mem.bio, pkey) else {
+			return nil
+		}
+		return String(validatingUTF8: mem.memory)
+	}
+	
+	public var privateKey: PEMKey? {
+		guard let str = privateKeyString else {
+			return nil
+		}
+		return try? PEMKey(source: str)
+	}
+	public var publicKey: PEMKey? {
+		guard let str = publicKeyString else {
+			return nil
+		}
+		return try? PEMKey(source: str)
+	}
+}
+
+
