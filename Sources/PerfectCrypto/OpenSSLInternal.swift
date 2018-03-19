@@ -19,10 +19,10 @@
 
 import COpenSSL
 import PerfectThread
-#if os(macOS) || os(iOS)
-	import Darwin
+#if os(Linux)
+    import SwiftGlibc
 #else
-	import SwiftGlibc
+	import Darwin
 #endif
 
 private var openSSLLocks: [Threading.Lock] = []
