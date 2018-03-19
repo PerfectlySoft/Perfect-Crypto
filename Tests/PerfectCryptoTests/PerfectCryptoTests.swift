@@ -207,15 +207,6 @@ class PerfectCryptoTests: XCTestCase {
 			return XCTAssert(false)
 		}
 		XCTAssert(String(validatingUTF8: enc) == testAnswer)
-		
-		do {
-			let testStr = "Hello, world!"
-			if let digestBytes = testStr.digest(.sha256),
-				let hexBytes = digestBytes.encode(.hex),
-				let hexBytesStr = String(validatingUTF8: hexBytes) {
-				print(hexBytesStr)
-			}
-		}
 	}
 	
 	func testCipherSizes() {
@@ -521,7 +512,6 @@ class PerfectCryptoTests: XCTestCase {
 				XCTAssert(keyPair.publicKeyString!.hasPrefix("-----BEGIN PUBLIC KEY-----"))
 				XCTAssert(keyPair.privateKeyString!.hasPrefix("-----BEGIN EC PRIVATE KEY-----"))
 				let signed = try jwt.sign(alg: .es256, key: privKey)
-				print(signed)
 				guard let jwtVer = JWTVerifier(signed) else {
 					return XCTFail("JWT verify failed")
 				}
