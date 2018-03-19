@@ -41,16 +41,20 @@ public struct JWT {
 
 /// Accepts a JWT token string and verifies its structural validity and signature.
 public struct JWTVerifier {
-	var headerBytes: [UInt8]
+	let headerBytes: [UInt8]
 	let payloadBytes: [UInt8]
-	var signatureBytes: [UInt8]
+	let signatureBytes: [UInt8]
 	/// The headers obtained from the token.
 	public var header: [String:Any] {
 		return (try? String(validatingUTF8: headerBytes)?.jsonDecode()) as? [String:Any] ?? [:]
 	}
 	/// The payload carried by the token.
 	public var payload: [String:Any] {
-		return (try? String(validatingUTF8: payloadBytes)?.jsonDecode()) as? [String:Any] ?? [:]
+		return (try? payloadString?.jsonDecode()) as? [String:Any] ?? [:]
+	}
+	// Payload data as UTF-8
+	public var payloadString: String? {
+		return String(validatingUTF8: payloadBytes)
 	}
 	
 	/// Create a JWTVerifier given a source string in the "aaaa.bbbb.cccc" format.
@@ -120,7 +124,7 @@ public struct JWTCreator {
 			return nil
 		}
 		payloadBytes = Array(json.utf8)
-	}
+	}	
 	/// Sign and return a new JWT token string using an HMAC key.
 	/// Additional headers can be optionally provided.
 	/// Throws a JWT.Error.signingError if there is a problem generating the token string.

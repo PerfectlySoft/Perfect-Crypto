@@ -453,7 +453,7 @@ class PerfectCryptoTests: XCTestCase {
 		let cipher = Cipher.aes_256_cbc
 		let password = "this is a good pw"
 		let salt = "this is a salty salt"
-		let data = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		let data = (1...1000).map { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\($0)" }.joined(separator: "\n")
 		guard let result = data.encrypt(cipher, password: password, salt: salt) else {
 			return XCTAssert(false)
 		}
