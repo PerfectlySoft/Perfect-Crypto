@@ -22,59 +22,59 @@ import Foundation
 import PerfectLib
 
 public extension FixedWidthInteger {
-  /// get a random number by the type
-  public static var random: Self {
-      var x = Self.max
-      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
-      p.initializeRandom()
-      return x
-  }
+	/// get a random number by the type
+	static var random: Self {
+		var x = Self.max
+		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+		p.initializeRandom()
+		return x
+	}
 }
 public extension Float {
-  /// get a random number by the type
-  public static var random: Float {
-      var x:Float = 0
-      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
-      p.initializeRandom()
-      return x
-  }
+	/// get a random number by the type
+	static var random: Float {
+		var x: Float = 0
+		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+		p.initializeRandom()
+		return x
+	}
 }
 public extension Double {
-  /// get a random number by the type
-  public static var random: Double {
-      var x:Double = 0
-      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
-      p.initializeRandom()
-      return x
-  }
+	/// get a random number by the type
+	static var random: Double {
+		var x: Double = 0
+		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+		p.initializeRandom()
+		return x
+	}
 }
 
 public extension File {
-  /// Digest a file into a hex based signature
-  /// - parameter digest: the algorithm of digest
-  /// - parameter bufferSize: the file digesting buffer, which is subject to the OS. Default is 16k, can be larger or smaller.
-  /// - returns: digest bytes
-  /// - throws: CryptoError
-  public func digest(_ digest: Digest, bufferSize: Int = 16384) throws -> [UInt8] {
-    let filter = DigestFilter(digest)
-    let chain = filter.chain(NullIO())
-    try self.open()
-    while let buf = try? self.readSomeBytes(count: bufferSize) {
-      let rd = try buf.withUnsafeBytes { pointer in
-        return try chain.write(bytes: pointer)
-      }
-      if rd < 1 { break }
-    }
-    self.close()
-    try chain.flush()
-    let validLength = digest.length
-    let ret = UnsafeMutableRawBufferPointer.allocate(count: validLength)
-    guard try filter.get(ret) == validLength else {
-      ret.deallocate()
-      return []
-    }
-    return ret.map { $0 }
-  }
+	/// Digest a file into a hex based signature
+	/// - parameter digest: the algorithm of digest
+	/// - parameter bufferSize: the file digesting buffer, which is subject to the OS. Default is 16k, can be larger or smaller.
+	/// - returns: digest bytes
+	/// - throws: CryptoError
+	func digest(_ digest: Digest, bufferSize: Int = 16384) throws -> [UInt8] {
+		let filter = DigestFilter(digest)
+		let chain = filter.chain(NullIO())
+		try self.open()
+		while let buf = try? self.readSomeBytes(count: bufferSize) {
+			let rd = try buf.withUnsafeBytes { pointer in
+				return try chain.write(bytes: pointer)
+			}
+			if rd < 1 { break }
+		}
+		self.close()
+		try chain.flush()
+		let validLength = digest.length
+		let ret = UnsafeMutableRawBufferPointer.allocate(count: validLength)
+		guard try filter.get(ret) == validLength else {
+			ret.deallocate()
+			return []
+		}
+		return ret.map { $0 }
+	}
 }
 
 public extension String {
@@ -132,10 +132,10 @@ public extension String {
 	/// The string's UTF8 characters are encoded.
 	/// Resulting data is in PEM encoded CMS format.
 	func encrypt(_ cipher: Cipher,
-	             password: String,
-	             salt: String,
-	             keyIterations: Int = 2048,
-	             keyDigest: Digest = .md5) -> String? {
+				 password: String,
+				 salt: String,
+				 keyIterations: Int = 2048,
+				 keyDigest: Digest = .md5) -> String? {
 		guard let v = Array(utf8).encrypt(cipher, password: Array(password.utf8), salt: Array(salt.utf8), keyIterations: keyIterations, keyDigest: keyDigest) else {
 			return nil
 		}
@@ -144,10 +144,10 @@ public extension String {
 	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
 	/// Resulting decrypted data must be valid UTF-8 characters or the operation will fail.
 	func decrypt(_ cipher: Cipher,
-	             password: String,
-	             salt: String,
-	             keyIterations: Int = 2048,
-	             keyDigest: Digest = .md5) -> String? {
+				 password: String,
+				 salt: String,
+				 keyIterations: Int = 2048,
+				 keyDigest: Digest = .md5) -> String? {
 		guard let v = Array(utf8).decrypt(cipher, password: Array(password.utf8), salt: Array(salt.utf8), keyIterations: keyIterations, keyDigest: keyDigest) else {
 			return nil
 		}
@@ -240,10 +240,10 @@ public extension Array where Element: Octal {
 	/// Encrypt this buffer using the indicated cipher, password, and salt.
 	/// Resulting data is PEM encoded CMS format.
 	func encrypt(_ cipher: Cipher,
-	             password: [UInt8],
-	             salt: [UInt8],
-	             keyIterations: Int = 2048,
-	             keyDigest: Digest = .md5) -> [UInt8]? {
+				 password: [UInt8],
+				 salt: [UInt8],
+				 keyIterations: Int = 2048,
+				 keyDigest: Digest = .md5) -> [UInt8]? {
 		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
 		let pwv = UnsafeRawBufferPointer(start: password, count: password.count)
 		let saltv = UnsafeRawBufferPointer(start: salt, count: salt.count)
@@ -257,10 +257,10 @@ public extension Array where Element: Octal {
 	}
 	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
 	func decrypt(_ cipher: Cipher,
-	             password: [UInt8],
-	             salt: [UInt8],
-	             keyIterations: Int = 2048,
-	             keyDigest: Digest = .md5) -> [UInt8]? {
+				 password: [UInt8],
+				 salt: [UInt8],
+				 keyIterations: Int = 2048,
+				 keyDigest: Digest = .md5) -> [UInt8]? {
 		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
 		let pwv = UnsafeRawBufferPointer(start: password, count: password.count)
 		let saltv = UnsafeRawBufferPointer(start: salt, count: salt.count)
@@ -359,19 +359,19 @@ public extension UnsafeRawBufferPointer {
 	/// Encrypt this buffer to PEM encoded CMS format using the indicated cipher, password, and salt.
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func encrypt(_ cipher: Cipher,
-	             password: UnsafeRawBufferPointer,
-	             salt: UnsafeRawBufferPointer,
-	             keyIterations: Int = 2048,
-	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
+				 password: UnsafeRawBufferPointer,
+				 salt: UnsafeRawBufferPointer,
+				 keyIterations: Int = 2048,
+				 keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
 		return cipher.encrypt(self, password: password, salt: salt, keyIterations: keyIterations, keyDigest: keyDigest)
 	}
 	/// Decrypt this PEM encoded CMS buffer using the indicated password and salt.
 	/// Returns a newly allocated buffer which must be freed by the caller.
 	func decrypt(_ cipher: Cipher,
-	             password: UnsafeRawBufferPointer,
-	             salt: UnsafeRawBufferPointer,
-	             keyIterations: Int = 2048,
-	             keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
+				 password: UnsafeRawBufferPointer,
+				 salt: UnsafeRawBufferPointer,
+				 keyIterations: Int = 2048,
+				 keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
 		return cipher.decrypt(self, password: password, salt: salt, keyIterations: keyIterations, keyDigest: keyDigest)
 	}
 }

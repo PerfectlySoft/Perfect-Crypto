@@ -483,7 +483,7 @@ class PerfectCryptoTests: XCTestCase {
 				let keyPair = try PEMKey(type: .rsa, bits: bits)
 				guard let pubKey = keyPair.publicKey,
 					let privKey = keyPair.privateKey else {
-					return XCTFail("Unable to get pub/priv keys")
+						return XCTFail("Unable to get pub/priv keys")
 				}
 				XCTAssert(keyPair.publicKeyString!.hasPrefix("-----BEGIN RSA PUBLIC KEY-----"))
 				XCTAssert(keyPair.privateKeyString!.hasPrefix("-----BEGIN RSA PRIVATE KEY-----"))
@@ -615,21 +615,6 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
-	func testNumbers() {
-		print("UInt8 random:", UInt8.random)
-		print("UInt16 random:", UInt16.random)
-		print("UInt32 random:", UInt32.random)
-		print("UInt64 random:", UInt64.random)
-		print("Int8 random:", Int8.random)
-		print("Int16 random:", Int16.random)
-		print("Int32 random:", Int32.random)
-		print("Int64 random:", Int64.random)
-		print("Int random:", Int.random)
-		print("UInt random:", UInt.random)
-		print("Float random:", Float.random)
-		print("Double random:", Double.random)
-	}
-
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -658,7 +643,6 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS3", testCipherCMS3),
 			("testHMACKey", testHMACKey),
 			("testFiles", testFiles),
-			("testNumbers", testNumbers)
 		]
 	}
 }
