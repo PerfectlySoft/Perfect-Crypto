@@ -615,6 +615,21 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
+	func testNumbers() {
+		print("UInt8 random:", UInt8.random)
+		print("UInt16 random:", UInt16.random)
+		print("UInt32 random:", UInt32.random)
+		print("UInt64 random:", UInt64.random)
+		print("Int8 random:", Int8.random)
+		print("Int16 random:", Int16.random)
+		print("Int32 random:", Int32.random)
+		print("Int64 random:", Int64.random)
+		print("Int random:", Int.random)
+		print("UInt random:", UInt.random)
+		print("Float random:", Float.random)
+		print("Double random:", Double.random)
+	}
+
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -642,7 +657,8 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS2", testCipherCMS2),
 			("testCipherCMS3", testCipherCMS3),
 			("testHMACKey", testHMACKey),
-			("testFiles", testFiles)
+			("testFiles", testFiles),
+			("testNumbers", testNumbers)
 		]
 	}
 }

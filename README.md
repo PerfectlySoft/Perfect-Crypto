@@ -264,6 +264,19 @@ public extension UnsafeRawBufferPointer {
 	/// - Postcondition: The memory is allocated and initialized to random bits.
 	static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? 
 }
+
+public extension FixedWidthInteger {
+  /// get a random integer, i.e., signed or unsigned int8/16/32/64
+  public static var random: Self
+}
+public extension Float {
+  /// get a random float
+  public static var random: Float
+}
+public extension Double {
+  /// get a random double
+  public static var random: Double 
+}
 ```
 
 ### JSON Web Tokens (JWT)

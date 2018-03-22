@@ -21,6 +21,34 @@
 import Foundation
 import PerfectLib
 
+public extension FixedWidthInteger {
+  /// get a random number by the type
+  public static var random: Self {
+      var x = Self.max
+      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+      p.initializeRandom()
+      return x
+  }
+}
+public extension Float {
+  /// get a random number by the type
+  public static var random: Float {
+      var x:Float = 0
+      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+      p.initializeRandom()
+      return x
+  }
+}
+public extension Double {
+  /// get a random number by the type
+  public static var random: Double {
+      var x:Double = 0
+      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+      p.initializeRandom()
+      return x
+  }
+}
+
 public extension File {
   /// Digest a file into a hex based signature
   /// - parameter digest: the algorithm of digest
