@@ -615,6 +615,22 @@ class PerfectCryptoTests: XCTestCase {
 		}
 	}
 	
+	func testNumbers() {
+		XCTAssertNotEqual(0, randomNumber(UInt8(0)))
+		XCTAssertNotEqual(0, randomNumber(UInt16(0)))
+		XCTAssertNotEqual(0, randomNumber(UInt32(0)))
+		XCTAssertNotEqual(0, randomNumber(UInt64(0)))
+		XCTAssertNotEqual(0, randomNumber(Int8(0)))
+		XCTAssertNotEqual(0, randomNumber(Int16(0)))
+		XCTAssertNotEqual(0, randomNumber(Int32(0)))
+		XCTAssertNotEqual(0, randomNumber(Int64(0)))
+		XCTAssertNotEqual(0, randomNumber(Int(0)))
+		XCTAssertNotEqual(0, randomNumber(UInt(0)))
+		XCTAssertNotEqual(0, randomNumber(Float(0)))
+		XCTAssertNotEqual(0, randomNumber(Float32(0)))
+		XCTAssertNotEqual(0, randomNumber(Double(0)))
+	}
+
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {
 		return [
 			("testInitialized", testInitialized),
@@ -642,7 +658,8 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS2", testCipherCMS2),
 			("testCipherCMS3", testCipherCMS3),
 			("testHMACKey", testHMACKey),
-			("testFiles", testFiles)
+			("testFiles", testFiles),
+			("testNumbers", testNumbers)
 		]
 	}
 }

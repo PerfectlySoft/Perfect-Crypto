@@ -264,6 +264,10 @@ public extension UnsafeRawBufferPointer {
 	/// - Postcondition: The memory is allocated and initialized to random bits.
 	static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? 
 }
+
+/// get a random number by simply setting a zero to the initialValue
+/// for example, `let x = randomNumber(Float(0))` or `let y = randomNumber(Int(0))`
+public func randomNumber<T>(_ initialValue: T) -> T
 ```
 
 ### JSON Web Tokens (JWT)
