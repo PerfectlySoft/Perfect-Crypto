@@ -314,7 +314,9 @@ public struct JWTVerifier {
 	/// 参数 `algo` 必须与通行证中的 "alg" 头数据字段吻合
 	public func verify(algo: JWT.Alg, key: Key) throws
 }
+
 ```
+
 
 以下示范说明了如何创建并使用“HS256”算法验证一个网络通行证。
 
