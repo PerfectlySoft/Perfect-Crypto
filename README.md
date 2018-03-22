@@ -265,9 +265,18 @@ public extension UnsafeRawBufferPointer {
 	static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? 
 }
 
-/// get a random number by simply setting a zero to the initialValue
-/// for example, `let x = randomNumber(Float(0))` or `let y = randomNumber(Int(0))`
-public func randomNumber<T>(_ initialValue: T) -> T
+public extension FixedWidthInteger {
+  /// get a random integer, i.e., signed or unsigned int8/16/32/64
+  public static var random: Self
+}
+public extension Float {
+  /// get a random float
+  public static var random: Float
+}
+public extension Double {
+  /// get a random double
+  public static var random: Double 
+}
 ```
 
 ### JSON Web Tokens (JWT)

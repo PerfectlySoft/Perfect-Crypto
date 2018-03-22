@@ -258,11 +258,18 @@ public extension UnsafeRawBufferPointer {
 	static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? 
 }
 
-/// 直接生成一个随机数，通过初始化一个有类型的零值实现类型自动转换
-/// 比如, `let x = randomNumber(Float(0))` or `let y = randomNumber(Int(0))`
-public func randomNumber<T>(_ initialValue: T) -> T
-
-```
+public extension FixedWidthInteger {
+  /// 生成一个随机数，有符号或者无符号的8位/16位/32位/64位整数
+  public static var random: Self
+}
+public extension Float {
+  /// 生成一个随机浮点数
+  public static var random: Float
+}
+public extension Double {
+  /// 生成一个随机双精度浮点数
+  public static var random: Double 
+}```
 
 ### JSON 网络通行证 (JWT)
 

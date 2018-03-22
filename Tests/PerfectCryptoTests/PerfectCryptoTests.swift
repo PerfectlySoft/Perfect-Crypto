@@ -616,19 +616,18 @@ class PerfectCryptoTests: XCTestCase {
 	}
 	
 	func testNumbers() {
-		XCTAssertNotEqual(0, randomNumber(UInt8(0)))
-		XCTAssertNotEqual(0, randomNumber(UInt16(0)))
-		XCTAssertNotEqual(0, randomNumber(UInt32(0)))
-		XCTAssertNotEqual(0, randomNumber(UInt64(0)))
-		XCTAssertNotEqual(0, randomNumber(Int8(0)))
-		XCTAssertNotEqual(0, randomNumber(Int16(0)))
-		XCTAssertNotEqual(0, randomNumber(Int32(0)))
-		XCTAssertNotEqual(0, randomNumber(Int64(0)))
-		XCTAssertNotEqual(0, randomNumber(Int(0)))
-		XCTAssertNotEqual(0, randomNumber(UInt(0)))
-		XCTAssertNotEqual(0, randomNumber(Float(0)))
-		XCTAssertNotEqual(0, randomNumber(Float32(0)))
-		XCTAssertNotEqual(0, randomNumber(Double(0)))
+		XCTAssertNotEqual(0, UInt8.random); print("UInt8 random:", UInt8.random)
+		XCTAssertNotEqual(0, UInt16.random); print("UInt16 random:", UInt16.random)
+		XCTAssertNotEqual(0, UInt32.random); print("UInt32 random:", UInt32.random)
+		XCTAssertNotEqual(0, UInt64.random); print("UInt64 random:", UInt64.random)
+		XCTAssertNotEqual(0, Int8.random); print("Int8 random:", Int8.random)
+		XCTAssertNotEqual(0, Int16.random); print("Int16 random:", Int16.random)
+		XCTAssertNotEqual(0, Int32.random); print("Int32 random:", Int32.random)
+		XCTAssertNotEqual(0, Int64.random); print("Int64 random:", Int64.random)
+		XCTAssertNotEqual(0, Int.random); print("Int random:", Int.random)
+		XCTAssertNotEqual(0, UInt.random); print("UInt random:", UInt.random)
+		XCTAssertNotEqual(0, Float.random); print("Float random:", Float.random)
+		XCTAssertNotEqual(0, Double.random); print("Double random:", Double.random)
 	}
 
 	static var allTests : [(String, (PerfectCryptoTests) -> () throws -> Void)] {

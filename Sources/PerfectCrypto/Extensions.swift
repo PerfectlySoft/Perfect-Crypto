@@ -21,15 +21,32 @@
 import Foundation
 import PerfectLib
 
-/// get a random number by simply setting a zero to the initialValue
-/// for example, `let x = randomNumber(Float(0))` or `let y = randomNumber(Int(0))`
-/// - parameter initialValue: a typed zero is ok
-///     - returns: a random number in type T
-public func randomNumber<T>(_ initialValue: T) -> T {
-  var x = initialValue
-  let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
-  p.initializeRandom()
-  return x
+public extension FixedWidthInteger {
+  /// get a random number by the type
+  public static var random: Self {
+      var x = Self.max
+      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+      p.initializeRandom()
+      return x
+  }
+}
+public extension Float {
+  /// get a random number by the type
+  public static var random: Float {
+      var x:Float = 0
+      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+      p.initializeRandom()
+      return x
+  }
+}
+public extension Double {
+  /// get a random number by the type
+  public static var random: Double {
+      var x:Double = 0
+      let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
+      p.initializeRandom()
+      return x
+  }
 }
 
 public extension File {
