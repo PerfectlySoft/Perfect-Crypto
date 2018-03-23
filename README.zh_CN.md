@@ -41,14 +41,6 @@
 
 Perfect 摘要、加密和编解码函数库
 
-### 问题报告、内容贡献和客户支持
-
-我们目前正在过渡到使用JIRA来处理所有源代码资源合并申请、修复漏洞以及其它有关问题。因此，GitHub 的“issues”问题报告功能已经被禁用了。
-
-如果您发现了问题，或者希望为改进本文提供意见和建议，[请在这里指出](http://jira.perfect.org:8080/servicedesk/customer/portal/1).
-
-在您开始之前，请参阅[目前待解决的问题清单](http://jira.perfect.org:8080/projects/ISS/issues).
-
 ## 编译
 
 请在您的Package.swift文件中增加下列依存关系：
@@ -269,7 +261,8 @@ public extension Float {
 public extension Double {
   /// 生成一个随机双精度浮点数
   public static var random: Double 
-}```
+}
+```
 
 ### JSON 网络通行证 (JWT)
 
