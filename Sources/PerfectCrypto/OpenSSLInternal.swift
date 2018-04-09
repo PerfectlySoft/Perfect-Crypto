@@ -67,11 +67,7 @@ extension CryptoError {
 		let maxLen = 1024
 		let buf = UnsafeMutablePointer<Int8>.allocate(capacity: maxLen)
 		defer {
-			#if swift(>=4.1)
 			buf.deallocate()
-			#else
-			buf.deallocate(capacity: maxLen)
-			#endif
 		}
 		ERR_error_string_n(errorCode, buf, maxLen)
 		let msg = String(validatingUTF8: buf) ?? ""
@@ -117,11 +113,10 @@ extension Encoding {
 			guard let memory = chain.memory else {
 				return nil
 			}
-			#if swift(>=4.1)
 			let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: length, alignment: 0)
+			#if swift(>=4.1)
 			ret.copyMemory(from: memory)
 			#else
-			let ret = UnsafeMutableRawBufferPointer.allocate(count: length)
 			ret.copyBytes(from: memory)
 			#endif
 			return ret
@@ -133,11 +128,7 @@ extension Encoding {
 	private func fromBytesBase64(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		let chain = Base64Filter().chain(MemoryIO(source))
 		do {
-			#if swift(>=4.1)
 			let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: source.count, alignment: 0)
-			#else
-			let ret = UnsafeMutableRawBufferPointer.allocate(count: source.count)
-			#endif
 			let count = try chain.read(ret)
 			return UnsafeMutableRawBufferPointer(start: ret.baseAddress, count: count)
 		} catch {
@@ -161,11 +152,7 @@ extension Encoding {
 					break
 				}
 			}
-			#if swift(>=4.1)
 			let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: length, alignment: 0)
-			#else
-			let ret = UnsafeMutableRawBufferPointer.allocate(count: length)
-			#endif
 			for i in 0..<length {
 				switch memory[i] {
 				case plus:
@@ -199,11 +186,7 @@ extension Encoding {
 		let newPtr = UnsafeRawBufferPointer(start: deurled, count: deurled.count)
 		let chain = Base64Filter().chain(MemoryIO(newPtr))
 		do {
-			#if swift(>=4.1)
 			let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: deurled.count, alignment: 0)
-			#else
-			let ret = UnsafeMutableRawBufferPointer.allocate(count: deurled.count)
-			#endif
 			let count = try chain.read(ret)
 			return UnsafeMutableRawBufferPointer(start: ret.baseAddress, count: count)
 		} catch {
@@ -213,11 +196,7 @@ extension Encoding {
 	
 	private func toBytesHex(_ source: UnsafeRawBufferPointer) -> UnsafeMutableRawBufferPointer? {
 		let sourceCount = source.count
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: sourceCount * 2, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: sourceCount * 2)
-		#endif
 		var ri = 0
 		for i in 0..<sourceCount {
 			let byte = source[i]
@@ -237,11 +216,7 @@ extension Encoding {
 		guard sourceCount % 2 == 0 else {
 			return nil
 		}
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: sourceCount / 2, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: sourceCount / 2)
-		#endif
 		var ri = 0
 		for index in stride(from: source.startIndex, to: source.endIndex, by: 2) {
 			guard let c = UInt8(hexOne: source[index], hexTwo: source[index+1]) else {
@@ -342,11 +317,7 @@ extension Digest {
 		guard 1 == EVP_DigestSignFinal(ctx, nil, &mdLen) else {
 			return nil
 		}
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: mdLen, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: mdLen)
-		#endif
 		var finalLen = mdLen
 		guard 1 == EVP_DigestSignFinal(ctx, ret.baseAddress?.assumingMemoryBound(to: UInt8.self), &finalLen) else {
 			ret.deallocate()
@@ -569,11 +540,7 @@ extension Cipher {
 			return nil
 		}
 		let allocLength = encryptLength(sourceCount: data.count)
-		#if swift(>=4.1)
 		let dstPtr = UnsafeMutableRawBufferPointer.allocate(byteCount: allocLength, alignment: 0)
-		#else
-		let dstPtr = UnsafeMutableRawBufferPointer.allocate(count: allocLength)
-		#endif
 		var wroteLength = Int32(0)
 		guard 1 == EVP_EncryptUpdate(ctx,
 		                             dstPtr.baseAddress?.assumingMemoryBound(to: UInt8.self),
@@ -592,11 +559,7 @@ extension Cipher {
 		}
 		let iwroteLength = Int(wroteLength) + owroteLength
 		if iwroteLength < allocLength {
-			#if swift(>=4.1)
 			let newDstPtr = UnsafeMutableRawBufferPointer.allocate(byteCount: iwroteLength, alignment: 0)
-			#else
-			let newDstPtr = UnsafeMutableRawBufferPointer.allocate(count: iwroteLength)
-			#endif
 			memcpy(newDstPtr.baseAddress!, dstPtr.baseAddress!, iwroteLength)
 			dstPtr.deallocate()
 			return newDstPtr
@@ -619,11 +582,7 @@ extension Cipher {
 										return nil
 		}
 		let allocLength = decryptLength(sourceCount: data.count)
-		#if swift(>=4.1)
 		let dstPtr = UnsafeMutableRawBufferPointer.allocate(byteCount: allocLength, alignment: 0)
-		#else
-		let dstPtr = UnsafeMutableRawBufferPointer.allocate(count: allocLength)
-		#endif
 		var wroteLength = Int32(0)
 		guard 1 == EVP_DecryptUpdate(ctx,
 		                             dstPtr.baseAddress?.assumingMemoryBound(to: UInt8.self),
@@ -642,11 +601,7 @@ extension Cipher {
 		}
 		let iwroteLength = Int(wroteLength) + owroteLength
 		if iwroteLength < allocLength {
-			#if swift(>=4.1)
 			let newDstPtr = UnsafeMutableRawBufferPointer.allocate(byteCount: iwroteLength, alignment: 0)
-			#else
-			let newDstPtr = UnsafeMutableRawBufferPointer.allocate(count: iwroteLength)
-			#endif
 			memcpy(newDstPtr.baseAddress!, dstPtr.baseAddress!, iwroteLength)
 			dstPtr.deallocate()
 			return newDstPtr
@@ -682,11 +637,7 @@ extension Cipher {
 				let mem = outBio.memory else {
 			return nil
 		}
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: mem.count, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: mem.count)
-		#endif
 		guard let r = ret.baseAddress, let m = mem.baseAddress else {
 			ret.deallocate()
 			return nil
@@ -725,11 +676,7 @@ extension Cipher {
 		guard let mem = outBio.memory, !mem.isEmpty else {
 			return nil
 		}
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: mem.count, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: mem.count)
-		#endif
 		guard let r = ret.baseAddress, let m = mem.baseAddress else {
 			ret.deallocate()
 			return nil

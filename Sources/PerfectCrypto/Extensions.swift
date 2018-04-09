@@ -68,11 +68,7 @@ public extension File {
 		self.close()
 		try chain.flush()
 		let validLength = digest.length
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: validLength, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: validLength)
-		#endif
 		guard try filter.get(ret) == validLength else {
 			ret.deallocate()
 			return []
@@ -284,11 +280,7 @@ public extension UnsafeMutableRawBufferPointer {
 	///
 	/// - Postcondition: The memory is allocated and initialized to random bits.
 	static func allocateRandom(count size: Int) -> UnsafeMutableRawBufferPointer? {
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: size, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: size)
-		#endif
 		guard 1 == internal_RAND_bytes(into: ret) else {
 			ret.deallocate()
 			return nil
@@ -302,17 +294,33 @@ public extension UnsafeMutableRawBufferPointer {
 	}
 }
 
+extension UnsafeMutableRawBufferPointer {
+	// Added for Swift 4.0/4.1 compat
+	#if swift(>=4.1)
+	#else
+	static func allocate(byteCount: Int, alignment: Int) -> UnsafeMutableRawBufferPointer {
+		return allocate(count: byteCount)
+	}
+	#endif
+}
+
+extension UnsafeMutablePointer {
+	// Added for Swift 4.0/4.1 compat
+	#if swift(>=4.1)
+	#else
+	func deallocate() {
+		deallocate(capacity: 0)
+	}
+	#endif
+}
+
 public extension UnsafeRawBufferPointer {
 	/// Allocate memory for `size` bytes with word alignment from the encryption library's
 	///	random number generator.
 	///
 	/// - Postcondition: The memory is allocated and initialized to random bits.
 	static func allocateRandom(count size: Int) -> UnsafeRawBufferPointer? {
-		#if swift(>=4.1)
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: size, alignment: 0)
-		#else
-		let ret = UnsafeMutableRawBufferPointer.allocate(count: size)
-		#endif
 		guard 1 == internal_RAND_bytes(into: ret) else {
 			ret.deallocate()
 			return nil
@@ -338,11 +346,7 @@ public extension UnsafeRawBufferPointer {
 			_ = try chain.write(bytes: self)
 			try chain.flush()
 			let validLength = digest.length
-			#if swift(>=4.1)
 			let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: validLength, alignment: 0)
-			#else
-			let ret = UnsafeMutableRawBufferPointer.allocate(count: validLength)
-			#endif
 			guard try filter.get(ret) == validLength else {
 				ret.deallocate()
 				return nil
