@@ -63,7 +63,11 @@ public struct JWTVerifier {
 	/// If verification succeeds then the `.headers` and `.payload` properties can be safely accessed.
 	public init?(_ jwt: String) {
 		let split = jwt.utf8.split(separator: dot, omittingEmptySubsequences: false)
+		#if swift(>=4.1)
+		let decoded = split.compactMap { $0.map { $0 }.decode(jwtEncoding) }
+		#else
 		let decoded = split.flatMap { $0.map { $0 }.decode(jwtEncoding) }
+		#endif
 		guard decoded.count == 3 else {
 			return nil
 		}

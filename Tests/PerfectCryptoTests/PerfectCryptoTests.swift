@@ -120,7 +120,11 @@ class PerfectCryptoTests: XCTestCase {
 			try write.pair(with: read)
 			_ = try write.write(bytes: ptr)
 			try write.flush()
+			#if swift(>=4.1)
+			let dest = UnsafeMutableRawBufferPointer.allocate(byteCount: 1024, alignment: 0)
+			#else
 			let dest = UnsafeMutableRawBufferPointer.allocate(count: 1024)
+			#endif
 			defer {
 				dest.deallocate()
 			}
@@ -139,7 +143,11 @@ class PerfectCryptoTests: XCTestCase {
 		let chain = Base64Filter().chain(MemoryIO())
 		do {
 			XCTAssert(try chain.write(bytes: ptr) == count)
+			#if swift(>=4.1)
+			let dest = UnsafeMutableRawBufferPointer.allocate(byteCount: 1024, alignment: 0)
+			#else
 			let dest = UnsafeMutableRawBufferPointer.allocate(count: 1024)
+			#endif
 			defer {
 				dest.deallocate()
 			}
@@ -175,7 +183,11 @@ class PerfectCryptoTests: XCTestCase {
 		let testStr = "Hello, world!"
 		let testAnswer = "315f5bdb76d078c43b8ac0064e4a0164612b1fce77c869345bfc94c75894edd3"
 		
+		#if swift(>=4.1)
+		let dest = UnsafeMutableRawBufferPointer.allocate(byteCount: 1024, alignment: 0)
+		#else
 		let dest = UnsafeMutableRawBufferPointer.allocate(count: 1024)
+		#endif
 		defer {
 			dest.deallocate()
 		}
@@ -534,7 +546,11 @@ class PerfectCryptoTests: XCTestCase {
 			let _bufferSize = 16384
 			let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: _bufferSize)
 			defer {
+				#if swift(>=4.1)
+				buffer.deallocate()
+				#else
 				buffer.deallocate(capacity: _bufferSize)
+				#endif
 			}
 			var buf: [UInt8] = []
 			repeat {
