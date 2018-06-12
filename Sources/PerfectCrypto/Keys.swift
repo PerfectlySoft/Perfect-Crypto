@@ -68,8 +68,8 @@ public class PEMKey: Key {
 			return .rsa
 		}
 	}
-	convenience init(kp: UnsafeMutablePointer<EVP_PKEY>?) {
-		self.init(kp: kp)
+	init(kp: UnsafeMutablePointer<EVP_PKEY>?) {
+		super.init(kp)
 	}
 	public convenience init(pemPath: String) throws {
 		try self.init(source: try File(pemPath).readString())
