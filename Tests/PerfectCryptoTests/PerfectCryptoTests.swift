@@ -561,7 +561,7 @@ class PerfectCryptoTests: XCTestCase {
 	}
 	
 	func openssl(command: String, file: String) throws -> String {
-		guard let output = try runProc(cmd: "/usr/bin/openssl", args: [command, file]),
+		guard let output = try runProc(cmd: "/usr/bin/openssl", args: ["dgst", command, file]),
 			let eq = output.index(of: "=") else {
 				throw CryptoError(code: -11, msg: "openssl failed")
 		}
@@ -576,7 +576,8 @@ class PerfectCryptoTests: XCTestCase {
 				throw CryptoError(code: -22, msg: "heximal encoding failure")
 		}
 		debugPrint("testing", file, by)
-		let answer = try openssl(command: by, file: file)
+		let command = "-" + by
+		let answer = try openssl(command: command, file: file)
 		XCTAssertEqual(answer, fingerprint)
 	}
 	
@@ -606,9 +607,9 @@ class PerfectCryptoTests: XCTestCase {
 				try testFileDigest(alg: .sha256, name: "sha256")
 				try testFileDigest(alg: .sha384, name: "sha384")
 				try testFileDigest(alg: .sha512, name: "sha512")
-				try testFileDigest(alg: .whirlpool, name: "whirlpool")
-			#else
 				try testFileDigest(alg: .ripemd160, name: "rmd160")
+			#else
+				try testFileDigest(alg: .whirlpool, name: "whirlpool")
 			#endif
 		} catch {
 			XCTFail(error.localizedDescription)
