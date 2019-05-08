@@ -47,7 +47,7 @@ Digest, cipher and encoding support for Perfect.
 Add this project as a dependency in your Package.swift file.
 
 ```
-.Package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", majorVersion: 3)
+.package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", from: "3.0.0")
 ```
 
 ## Linux Build Notes
