@@ -29,9 +29,9 @@ private var openSSLLocks: [Threading.Lock] = []
 
 struct OpenSSLInternal {
 	static var isInitialized: Bool = {
-		ERR_load_crypto_strings()
+		copenssl_ERR_load_crypto_strings()
 		ERR_load_BIO_strings()
-		OPENSSL_add_all_algorithms_conf()
+		copenssl_OPENSSL_add_all_algorithms_conf()
 		
 		for i in 0..<Int(CRYPTO_num_locks()) {
 			openSSLLocks.append(Threading.Lock())
@@ -62,7 +62,7 @@ struct OpenSSLInternal {
 }
 
 extension CryptoError {
-	static func throwOpenSSLError() throws -> Never {
+	init() {
 		let errorCode = ERR_get_error()
 		let maxLen = 1024
 		let buf = UnsafeMutablePointer<Int8>.allocate(capacity: maxLen)
@@ -71,7 +71,10 @@ extension CryptoError {
 		}
 		ERR_error_string_n(errorCode, buf, maxLen)
 		let msg = String(validatingUTF8: buf) ?? ""
-		throw CryptoError(code: Int(errorCode), msg: msg)
+		self.init(code: Int(errorCode), msg: msg)
+	}
+	static func throwOpenSSLError() throws -> Never {
+		throw CryptoError()
 	}
 }
 
@@ -282,11 +285,7 @@ extension Digest {
 		switch self {
 		case .md4:		  return EVP_md4()
 		case .md5:		  return EVP_md5()
-		case .sha:		  return EVP_sha()
 		case .sha1:		  return EVP_sha1()
-		case .dss:		  return EVP_dss()
-		case .dss1:		  return EVP_dss1()
-		case .ecdsa:	  return EVP_ecdsa()
 		case .sha224:	  return EVP_sha224()
 		case .sha256:	  return EVP_sha256()
 		case .sha384:	  return EVP_sha384()
@@ -297,15 +296,15 @@ extension Digest {
 		}
 	}
 	var length: Int {
-		return Int(evp.pointee.md_size)
+		return Int(copenssl_EVP_MD_size(evp))
 	}
 	
 	func sign(_ data: UnsafeRawBufferPointer, privateKey key: Key) -> UnsafeMutableRawBufferPointer? {
-		guard let ctx = EVP_MD_CTX_create() else {
+		guard let ctx = copenssl_EVP_MD_CTX_create() else {
 			return nil
 		}
 		defer {
-			EVP_MD_CTX_destroy(ctx)
+			copenssl_EVP_MD_CTX_destroy(ctx)
 		}
 		guard 1 == EVP_DigestSignInit(ctx, nil, self.evp, nil, key.pkey) else {
 			return nil
@@ -345,11 +344,11 @@ extension Digest {
 			return 0 == CRYPTO_memcmp(signed.baseAddress, signature.baseAddress, signed.count)
 		}
 		
-		guard let ctx = EVP_MD_CTX_create() else {
+		guard let ctx = copenssl_EVP_MD_CTX_create() else {
 			return false
 		}
 		defer {
-			EVP_MD_CTX_destroy(ctx)
+			copenssl_EVP_MD_CTX_destroy(ctx)
 		}
 		guard 1 == EVP_DigestVerifyInit(ctx, nil, evp, nil, key.pkey) else {
 			return false
@@ -506,15 +505,15 @@ extension Cipher {
 	}
 	
 	public var blockSize: Int {
-		return Int(evp.pointee.block_size)
+		return Int(copenssl_EVP_CIPHER_block_size(evp))
 	}
 	
 	public var keyLength: Int {
-		return Int(evp.pointee.key_len)
+		return Int(copenssl_EVP_CIPHER_key_length(evp))
 	}
 	
 	public var ivLength: Int {
-		return Int(evp.pointee.iv_len)
+		return Int(copenssl_EVP_CIPHER_iv_length(evp))
 	}
 	
 	func encryptLength(sourceCount l: Int) -> Int {
@@ -622,18 +621,17 @@ extension Cipher {
 		}
 		let derivedPassword = UnsafeRawBufferPointer(start: derived, count: derived.count)
 		let memBio = MemoryIO(data)
-		let flags =  UInt32(CMS_STREAM | CMS_BINARY) // encrypted data will have LF converted to CRLF if not CMS_BINARY
 		guard let cms = CMS_EncryptedData_encrypt(memBio.bio, evp,
 		                                          derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
 		                                          derivedPassword.count,
-		                                          flags) else {
+		                                          UInt32(CMS_STREAM|CMS_BINARY)) else {
 			return nil
 		}
 		defer {
 			CMS_ContentInfo_free(cms)
 		}
 		let outBio = MemoryIO()
-		guard 0 != PEM_write_bio_CMS_stream(outBio.bio, cms, memBio.bio, Int32(flags)),
+		guard 0 != PEM_write_bio_CMS_stream(outBio.bio, cms, memBio.bio, Int32(CMS_STREAM|CMS_BINARY)),
 				let mem = outBio.memory else {
 			return nil
 		}
@@ -651,14 +649,6 @@ extension Cipher {
 	                    salt: UnsafeRawBufferPointer,
 	                    keyIterations: Int = 2048,
 	                    keyDigest: Digest = .md5) -> UnsafeMutableRawBufferPointer? {
-		guard let derived = keyDigest.deriveKey(password: password,
-		                                        salt: salt,
-		                                        iterations: keyIterations,
-		                                        keyLength: keyLength) else {
-			return nil
-		}
-		let flags =  UInt32(CMS_STREAM | CMS_BINARY)
-		let derivedPassword = UnsafeRawBufferPointer(start: derived, count: derived.count)
 		let memBio = MemoryIO(data)
 		guard let cms = PEM_read_bio_CMS(memBio.bio, nil, nil, nil) else {
 			return nil
@@ -667,11 +657,20 @@ extension Cipher {
 			CMS_ContentInfo_free(cms)
 		}
 		let outBio = MemoryIO()
-		guard 0 != CMS_EncryptedData_decrypt(cms,
-			                               derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
-			                               derivedPassword.count,
-			                               nil, outBio.bio, flags) else {
-			return nil
+		do {
+			guard let derived = keyDigest.deriveKey(password: password,
+													salt: salt,
+													iterations: keyIterations,
+													keyLength: keyLength) else {
+				return nil
+			}
+			let derivedPassword = UnsafeRawBufferPointer(start: derived, count: derived.count)
+			guard 0 != CMS_EncryptedData_decrypt(cms,
+											derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
+											derivedPassword.count,
+											nil, outBio.bio, UInt32(CMS_STREAM|CMS_BINARY)) else {
+				return nil
+			}
 		}
 		guard let mem = outBio.memory, !mem.isEmpty else {
 			return nil

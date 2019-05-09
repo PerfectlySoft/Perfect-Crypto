@@ -215,9 +215,9 @@ class PerfectCryptoTests: XCTestCase {
 		let kl = algo.keyLength
 		let il = algo.ivLength
 		
-		XCTAssert(bs == 8)
-		XCTAssert(kl == 24)
-		XCTAssert(il == 8)
+		XCTAssertEqual(bs, 8)
+		XCTAssertEqual(kl, 24)
+		XCTAssertEqual(il, 8)
 	}
 	
 	func testRandomBuffer1() {
@@ -232,9 +232,7 @@ class PerfectCryptoTests: XCTestCase {
 		guard let enc = UnsafeRawBufferPointer(buff).encode(.hex) else {
 			return XCTAssert(false)
 		}
-		defer {
-			enc.deallocate()
-		}
+		enc.deallocate()
 	}
 	
 	func testRandomBuffer2() {
@@ -419,10 +417,10 @@ class PerfectCryptoTests: XCTestCase {
 		let salt = Array("this is a salty salt".utf8)
 		let randomArray = [UInt8](randomCount: 1029)
 		guard let result = randomArray.encrypt(cipher, password: password, salt: salt) else {
-			return XCTAssert(false)
+			return XCTAssert(false, "\(CryptoError())")
 		}
 		guard let decryptedAry = result.decrypt(cipher, password: password, salt: salt) else {
-			return XCTAssert(false)
+			return XCTAssert(false, "\(CryptoError())")
 		}
 		XCTAssertEqual(decryptedAry, randomArray)
 	}
@@ -434,7 +432,7 @@ class PerfectCryptoTests: XCTestCase {
 		let salt = Array("this is a salty salt".utf8)
 		let randomArray = [UInt8](randomCount: 1029)
 		guard let result = randomArray.encrypt(cipher, password: password, salt: salt) else {
-			return XCTAssert(false)
+			return XCTAssert(false, "\(CryptoError())")
 		}
 		let decryptedAry = result.decrypt(cipher, password: passwordBad, salt: salt)
 		XCTAssertNil(decryptedAry)
@@ -446,10 +444,10 @@ class PerfectCryptoTests: XCTestCase {
 		let salt = "this is a salty salt"
 		let data = (1...1000).map { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\($0)" }.joined(separator: "\n")
 		guard let result = data.encrypt(cipher, password: password, salt: salt) else {
-			return XCTAssert(false)
+			return XCTAssert(false, "\(CryptoError())")
 		}
 		guard let decryptedData = result.decrypt(cipher, password: password, salt: salt) else {
-			return XCTAssert(false)
+			return XCTAssert(false, "\(CryptoError())")
 		}
 		XCTAssertEqual(decryptedData, data)
 	}
@@ -575,7 +573,6 @@ class PerfectCryptoTests: XCTestCase {
 			else {
 				throw CryptoError(code: -22, msg: "heximal encoding failure")
 		}
-		debugPrint("testing", file, by)
 		let answer = try openssl(command: by, file: file)
 		XCTAssertEqual(answer, fingerprint)
 	}
@@ -585,7 +582,6 @@ class PerfectCryptoTests: XCTestCase {
 		file.delete()
 		try file.random(totalBytes: size)
 		let dg = try file.digest(alg)
-		debugPrint("prepare", size, "for", file.path)
 		try validate(file: file.path, digest: dg, by: name)
 	}
 	
@@ -599,17 +595,17 @@ class PerfectCryptoTests: XCTestCase {
 		do {
 			try testFileDigest(alg: .md4, name: "md4")
 			try testFileDigest(alg: .md5, name: "md5")
-			try testFileDigest(alg: .sha, name: "sha")
+//			try testFileDigest(alg: .sha, name: "sha")
 			try testFileDigest(alg: .sha1, name: "sha1")
-			#if os(OSX)
+//			#if os(OSX)
 				try testFileDigest(alg: .sha224, name: "sha224")
 				try testFileDigest(alg: .sha256, name: "sha256")
 				try testFileDigest(alg: .sha384, name: "sha384")
 				try testFileDigest(alg: .sha512, name: "sha512")
 				try testFileDigest(alg: .whirlpool, name: "whirlpool")
-			#else
+//			#else
 				try testFileDigest(alg: .ripemd160, name: "rmd160")
-			#endif
+//			#endif
 		} catch {
 			XCTFail(error.localizedDescription)
 		}

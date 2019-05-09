@@ -227,7 +227,7 @@ extension ByteSource where Self: ByteIOBase {
 /// Generally returned as a result of using IOPair.
 public class GenericIO: ByteIOBase, ByteSink, ByteSource {
 	public init() {
-		super.init(method: BIO_s_bio())
+		super.init(method: UnsafeMutablePointer(mutating: UnsafePointer(BIO_s_bio())))
 	}
 	override init(bio: BIOPointer) {
 		super.init(bio: bio)
@@ -253,7 +253,7 @@ public struct IOPair {
 	}
 }
 
-/// A sink/source object which reads from of writes to a memory buffer.
+/// A sink/source object which reads from or writes to a memory buffer.
 /// Buffer is automatically resized when writing to it.
 public class MemoryIO: ByteIOBase, ByteSink, ByteSource {
 	/// The current buffer data held by this object.
@@ -267,7 +267,7 @@ public class MemoryIO: ByteIOBase, ByteSink, ByteSource {
 	}
 	/// Create a new object with no initial data.
 	public init() {
-		super.init(method: BIO_s_mem())
+		super.init(method: UnsafeMutablePointer(mutating: UnsafePointer(BIO_s_mem())))
 	}
 	/// Create a new buffer and allocate the indicated number of bytes.
 	public convenience init(allocate count: Int) {
@@ -352,7 +352,7 @@ public class FileIOStderr: ByteIOBase, ByteSink {
 /// need to store data written through it.
 public class NullIO: ByteIOBase, ByteSink, ByteSource {
 	public init() {
-		super.init(method: BIO_s_null())
+		super.init(method: UnsafeMutablePointer(mutating: UnsafePointer(BIO_s_null())))
 	}
 }
 
@@ -435,7 +435,7 @@ public class BufferFilter: ByteIOBase {
 /// The resulting required digest size can be determined through `Digest.length`.
 public class DigestFilter: ByteIOBase, ByteSource {
 	public init(_ digest: Digest) {
-		super.init(method: BIO_f_md())
+		super.init(method: UnsafeMutablePointer(mutating: UnsafePointer(BIO_f_md())))
 		let p = digest.evp
 		BIO_ctrl(bio, BIO_C_SET_MD, 1, UnsafeMutableRawPointer(mutating: p))
 	}

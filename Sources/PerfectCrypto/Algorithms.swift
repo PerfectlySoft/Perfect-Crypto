@@ -28,11 +28,7 @@ public enum Encoding {
 public enum Digest {
 	case md4
 	case md5
-	case sha
 	case sha1
-	case dss
-	case dss1
-	case ecdsa
 	case sha224
 	case sha256
 	case sha384
