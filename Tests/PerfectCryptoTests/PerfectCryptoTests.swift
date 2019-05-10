@@ -639,6 +639,7 @@ class PerfectCryptoTests: XCTestCase {
 			("testCipherCMS3", testCipherCMS3),
 			("testHMACKey", testHMACKey),
 			("testFiles", testFiles),
+			("testKeyGen", testKeyGen),
 		]
 	}
 }
