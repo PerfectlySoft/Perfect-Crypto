@@ -29,9 +29,7 @@ private var openSSLLocks: [Threading.Lock] = []
 
 struct OpenSSLInternal {
 	static var isInitialized: Bool = {
-		copenssl_ERR_load_crypto_strings()
-		ERR_load_BIO_strings()
-		copenssl_OPENSSL_add_all_algorithms_conf()
+		copenssl_SSL_library_init()
 		
 		for i in 0..<Int(CRYPTO_num_locks()) {
 			openSSLLocks.append(Threading.Lock())
