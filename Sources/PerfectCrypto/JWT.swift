@@ -17,6 +17,7 @@
 //===----------------------------------------------------------------------===//
 //
 
+import COpenSSL
 import PerfectLib
 import Foundation
 
@@ -170,6 +171,68 @@ public struct JWTCreator {
 			throw JWT.Error.signingError("Fatal error during signing")
 		}
 		return bytes
+	}
+}
+func BN_num_bytes(_ bn: UnsafeMutablePointer<BIGNUM>) -> Int32 {
+	return ((BN_num_bits(bn)+7)/8)
+}
+
+public struct JWK: Codable {
+	public struct Key: Codable {
+		public let kty: String
+		public let kid: String
+		public var e: String? = nil
+		public var n: String? = nil
+		init(key: PEMKey) throws {
+			kid = UUID().uuidString
+			let pkey = key.pkey
+			switch key.type {
+			case .rsa:
+				kty = "RSA"
+				if let rsa = EVP_PKEY_get1_RSA(pkey) {
+					if let bignum = rsa.pointee.n {
+						let len = BN_num_bytes(bignum)
+						let ptr = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: Int(len))
+						defer {
+							ptr.deallocate()
+						}
+						BN_bn2bin(bignum, ptr.baseAddress)
+						if let encoded = UnsafeRawBufferPointer(ptr).encode(.base64url) {
+							n = String(validatingUTF8: UnsafeRawBufferPointer(encoded))
+						}
+					}
+					if let bignum = rsa.pointee.e {
+						let len = BN_num_bytes(bignum)
+						let ptr = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: Int(len))
+						defer {
+							ptr.deallocate()
+						}
+						BN_bn2bin(bignum, ptr.baseAddress)
+						if let encoded = UnsafeRawBufferPointer(ptr).encode(.base64url) {
+							e = String(validatingUTF8: UnsafeRawBufferPointer(encoded))
+						}
+					}
+				}
+			case .dsa:
+				kty = "DSA"
+				let _ = EVP_PKEY_get1_DSA(pkey)
+				throw CryptoError(code: -1, msg: "Not implemented.")
+			case .ec:
+				kty = "EC"
+				let _ = EVP_PKEY_get1_EC_KEY(pkey)
+				throw CryptoError(code: -1, msg: "Not implemented.")
+			}
+		}
+	}
+	public let keys: [Key]
+	public init(key: PEMKey) throws {
+		try self.init(keys: [key])
+	}
+	public init(keys: PEMKey, pems: PEMKey...) throws {
+		try self.init(keys: [keys] + pems)
+	}
+	public init(keys pems: [PEMKey]) throws {
+		keys = try pems.map{try Key(key: $0)}
 	}
 }
 
