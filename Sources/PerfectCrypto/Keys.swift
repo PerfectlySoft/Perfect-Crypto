@@ -58,7 +58,7 @@ public enum PEMKeyType {
 }
 
 public class PEMKey: Key {
-	var type: PEMKeyType {
+	public var type: PEMKeyType {
 		let typeId = EVP_PKEY_base_id(pkey)
 		switch typeId {
 		case EVP_PKEY_RSA: return .rsa
