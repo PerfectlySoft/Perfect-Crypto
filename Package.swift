@@ -1,4 +1,4 @@
-// swift-tools-version:4.1
+// swift-tools-version:5.1
 //
 //  Package.swift
 //  PerfectCrypto
@@ -28,11 +28,14 @@ import PackageDescription
 
 let package = Package(
     name: "PerfectCrypto",
+	platforms: [
+		.macOS(.v10_15)
+	],
 	products: [
 		.library(name: "PerfectCrypto", targets: ["PerfectCrypto"])
 	],
     dependencies: [
-		.package(url: "https://github.com/PerfectlySoft/PerfectLib.git", from: "3.0.0"),
+		.package(url: "https://github.com/PerfectlySoft/PerfectLib.git", from: "4.0.0"),
 		.package(url: "https://github.com/PerfectlySoft/Perfect-Thread.git", from: "3.0.0"),
 		.package(url: cOpenSSLRepo, from: "4.0.0")
 	],

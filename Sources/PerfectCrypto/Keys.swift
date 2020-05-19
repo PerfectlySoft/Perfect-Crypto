@@ -38,18 +38,17 @@ public class Key {
 }
 
 public class HMACKey: Key {
-	public init(_ key: String) {
-		super.init(key.withBufferPointer {
-			b in
-			return EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, nil,
-			                            b.baseAddress?.assumingMemoryBound(to: UInt8.self),
-			                            Int32(b.count))
-		})
+	public convenience init(_ key: String) {
+		self.init(key.utf8.map{UInt8($0)})
 	}
 	public init(_ key: [UInt8]) {
-		super.init(EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, nil,
-			                            UnsafePointer(key),
-			                            Int32(key.count)))
+		let p = key.withUnsafeBytes {
+			(p: UnsafeRawBufferPointer) -> UnsafeMutablePointer<EVP_PKEY> in
+			return EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, nil,
+										p.bindMemory(to: UInt8.self).baseAddress,
+										Int32(p.count))
+		}
+		super.init(p)
 	}
 }
 

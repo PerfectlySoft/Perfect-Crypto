@@ -184,8 +184,7 @@ extension Encoding {
 		for _ in 0..<(deurled.count % 4) {
 			deurled.append(equal)
 		}
-		let newPtr = UnsafeRawBufferPointer(start: deurled, count: deurled.count)
-		let chain = Base64Filter().chain(MemoryIO(newPtr))
+		let chain = deurled.withUnsafeBytes { Base64Filter().chain(MemoryIO($0)) }
 		do {
 			let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: deurled.count, alignment: 0)
 			let count = try chain.read(ret)
@@ -376,9 +375,15 @@ extension Digest {
 	/// The `iterations` parameter should generally be a number greater than 1000.
 	/// The `keyLength` parameter should indicate the desired key length and will generally match the `keyLength` of a cipher.
 	public func deriveKey(password: [UInt8], salt: [UInt8], iterations: Int, keyLength: Int) -> [UInt8]? {
-		return deriveKey(password: UnsafeRawBufferPointer(start: password, count: password.count),
-		                 salt: UnsafeRawBufferPointer(start: salt, count: salt.count),
-		                 iterations: iterations, keyLength: keyLength)
+		return password.withUnsafeBytes {
+			password in
+			salt.withUnsafeBytes {
+				salt in
+				deriveKey(password: password,
+					salt: salt,
+					iterations: iterations, keyLength: keyLength)
+			}
+		}
 	}
 	
 	/// Derive a suitable encryption key based on a password and salt.
@@ -617,12 +622,11 @@ extension Cipher {
 		                                   keyLength: keyLength) else {
 			return nil
 		}
-		let derivedPassword = UnsafeRawBufferPointer(start: derived, count: derived.count)
 		let memBio = MemoryIO(data)
-		guard let cms = CMS_EncryptedData_encrypt(memBio.bio, evp,
-		                                          derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
-		                                          derivedPassword.count,
-		                                          UInt32(CMS_STREAM|CMS_BINARY)) else {
+		guard let cms = derived.withUnsafeBytes({ CMS_EncryptedData_encrypt(memBio.bio, evp,
+		                                          $0.baseAddress?.assumingMemoryBound(to: UInt8.self),
+		                                          $0.count,
+												  UInt32(CMS_STREAM|CMS_BINARY))}) else {
 			return nil
 		}
 		defer {
@@ -662,11 +666,14 @@ extension Cipher {
 													keyLength: keyLength) else {
 				return nil
 			}
-			let derivedPassword = UnsafeRawBufferPointer(start: derived, count: derived.count)
-			guard 0 != CMS_EncryptedData_decrypt(cms,
-											derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
-											derivedPassword.count,
-											nil, outBio.bio, UInt32(CMS_STREAM|CMS_BINARY)) else {
+			let cres = derived.withUnsafeBytes {
+				derivedPassword -> Int32 in
+				return CMS_EncryptedData_decrypt(cms,
+								derivedPassword.baseAddress?.assumingMemoryBound(to: UInt8.self),
+								derivedPassword.count,
+								nil, outBio.bio, UInt32(CMS_STREAM|CMS_BINARY))
+			}
+			guard 0 != cres else {
 				return nil
 			}
 		}

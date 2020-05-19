@@ -112,13 +112,12 @@ class PerfectCryptoTests: XCTestCase {
 		let testStr = "Hello, world!"
 		let chars = [UInt8](testStr.utf8)
 		let count = chars.count
-		let ptr = UnsafeRawBufferPointer(start: UnsafePointer(chars), count: count)
 		let pair = IOPair()
 		let write = pair.first
 		let read = pair.second
 		do {
 			try write.pair(with: read)
-			_ = try write.write(bytes: ptr)
+			_ = try chars.withUnsafeBytes { try write.write(bytes: $0) }
 			try write.flush()
 			let dest = UnsafeMutableRawBufferPointer.allocate(byteCount: 1024, alignment: 0)
 			defer {
@@ -135,10 +134,11 @@ class PerfectCryptoTests: XCTestCase {
 		let testStr = "Hello, world!"
 		let chars = [UInt8](testStr.utf8)
 		let count = chars.count
-		let ptr = UnsafeRawBufferPointer(start: UnsafePointer(chars), count: count)
 		let chain = Base64Filter().chain(MemoryIO())
 		do {
-			XCTAssert(try chain.write(bytes: ptr) == count)
+			try chars.withUnsafeBytes {
+				XCTAssert(try chain.write(bytes: $0) == count)
+			}
 			let dest = UnsafeMutableRawBufferPointer.allocate(byteCount: 1024, alignment: 0)
 			defer {
 				dest.deallocate()
@@ -156,11 +156,12 @@ class PerfectCryptoTests: XCTestCase {
 		let testAnswer = "SGVsbG8sIHdvcmxkIQ=="
 		let chars = [UInt8](testStr.utf8)
 		let count = chars.count
-		let ptr = UnsafeRawBufferPointer(start: UnsafePointer(chars), count: count)
 		let chain = Base64Filter().chain(MemoryIO())
 		do {
 			XCTAssert("\(chain)" == "base64 encoding<->(memory buffer)")
-			let wrote = try chain.write(bytes: ptr)
+			let wrote = try chars.withUnsafeBytes {
+				try chain.write(bytes: $0)
+			}
 			XCTAssert(wrote == count)
 			let result = try chain.flush().memory
 			XCTAssert(result?.count == testAnswer.utf8.count)
@@ -182,7 +183,7 @@ class PerfectCryptoTests: XCTestCase {
 		
 		do {
 			let digest = DigestFilter(.sha256)
-			_ = try testStr.withBufferPointer {
+			_ = try testStr.utf8.map{$0}.withUnsafeBytes {
 				try digest.chain(NullIO()).write(bytes: $0)
 			}
 			
@@ -560,7 +561,7 @@ class PerfectCryptoTests: XCTestCase {
 	
 	func openssl(command: String, file: String) throws -> String {
 		guard let output = try runProc(cmd: "/usr/bin/openssl", args: [command, file]),
-			let eq = output.index(of: "=") else {
+			let eq = output.firstIndex(of: "=") else {
 				throw CryptoError(code: -11, msg: "openssl failed")
 		}
 		let chopped = output[eq..<output.endIndex].dropFirst(2).dropLast()

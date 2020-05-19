@@ -295,9 +295,16 @@ public class MemoryIO: ByteIOBase, ByteSink, ByteSource {
 	/// Create a new buffer given the string data.
 	/// String data is converted to UTF8 and the data is copied to a new buffer.
 	public convenience init(_ string: String) {
-		let chars = [UInt8](string.utf8)
+		var chars = [UInt8](string.utf8)
 		let count = chars.count
-		self.init(copying: UnsafeRawBufferPointer(start: UnsafePointer(chars), count: count))
+		self.init()
+		
+		let mem = BUF_MEM_new()
+		BUF_MEM_grow(mem, count)
+		if let data = mem?.pointee.data {
+			memcpy(data, &chars, count)
+		}
+		BIO_ctrl(bio, BIO_C_SET_BUF_MEM, Int(BIO_CLOSE), UnsafeMutableRawPointer(mutating: mem))
 	}
 }
 

@@ -24,28 +24,25 @@ import PerfectLib
 public extension FixedWidthInteger {
 	/// get a random number by the type
 	static var random: Self {
-		var x = Self.max
-		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
-		p.initializeRandom()
-		return x
+		var x = [Self.max]
+		x.withUnsafeMutableBytes { $0.initializeRandom() }
+		return x[0]
 	}
 }
 public extension Float {
 	/// get a random number by the type
 	static var random: Float {
-		var x: Float = 0
-		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
-		p.initializeRandom()
-		return x
+		var x: [Float] = [0]
+		x.withUnsafeMutableBytes { $0.initializeRandom() }
+		return x[0]
 	}
 }
 public extension Double {
 	/// get a random number by the type
 	static var random: Double {
-		var x: Double = 0
-		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &x, count: MemoryLayout.size(ofValue: x)))
-		p.initializeRandom()
-		return x
+		var x: [Double] = [0]
+		x.withUnsafeMutableBytes { $0.initializeRandom() }
+		return x[0]
 	}
 }
 
@@ -96,9 +93,7 @@ public extension String {
 	}
 	/// Obtain a buffer pointer for the String's UTF8 characters.
 	func withBufferPointer<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
-		let chars = [UInt8](self.utf8)
-		let count = chars.count
-		return try body(UnsafeRawBufferPointer(start: UnsafePointer(chars), count: count))
+		return try [UInt8](self.utf8).withUnsafeBytes(body)
 	}
 }
 
@@ -162,16 +157,16 @@ public extension Array where Element: Octal {
 	/// Creates a new array containing the specified number of a single random values.
 	init(randomCount count: Int) {
 		self.init(repeating: UInt8(0) as! Element, count: count)
-		let p = UnsafeMutableRawBufferPointer(mutating: UnsafeRawBufferPointer(start: &self, count: count))
-		p.initializeRandom()
+		withUnsafeMutableBytes {
+			$0.initializeRandom()
+		}
 	}
 }
 
 public extension Array where Element: Octal {
 	/// Encode the Array into An array of bytes using the indicated encoding.
 	func encode(_ encoding: Encoding) -> [UInt8]? {
-		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
-		guard let newPtr = ptr.encode(encoding) else {
+		guard let newPtr = withUnsafeBytes({$0.encode(encoding)}) else {
 			return nil
 		}
 		defer { newPtr.deallocate() }
@@ -179,8 +174,7 @@ public extension Array where Element: Octal {
 	}
 	/// Decode the Array into an array of bytes using the indicated encoding.
 	func decode(_ encoding: Encoding) -> [UInt8]? {
-		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
-		guard let newPtr = ptr.decode(encoding) else {
+		guard let newPtr = withUnsafeBytes({$0.decode(encoding)}) else {
 			return nil
 		}
 		defer { newPtr.deallocate() }
@@ -188,8 +182,7 @@ public extension Array where Element: Octal {
 	}
 	/// Digest the Array data into an array of bytes using the indicated algorithm.
 	func digest(_ digest: Digest) -> [UInt8]? {
-		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
-		guard let newPtr = ptr.digest(digest) else {
+		guard let newPtr = withUnsafeBytes({$0.digest(digest)}) else {
 			return nil
 		}
 		defer { newPtr.deallocate() }
@@ -197,8 +190,7 @@ public extension Array where Element: Octal {
 	}
 	/// Sign the Array data into an array of bytes using the indicated algorithm and key.
 	func sign(_ digest: Digest, key: Key) -> [UInt8]? {
-		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
-		guard let newPtr = ptr.sign(digest, key: key) else {
+		guard let newPtr = withUnsafeBytes({$0.sign(digest, key: key)}) else {
 			return nil
 		}
 		defer { newPtr.deallocate() }
@@ -207,16 +199,20 @@ public extension Array where Element: Octal {
 	/// Verify the array against the signature.
 	/// Returns true if the signature is verified. Returns false otherwise.
 	func verify(_ digest: Digest, signature: [UInt8], key: Key) -> Bool {
-		let ptr = UnsafeRawBufferPointer(start: self, count: self.count)
-		let sigPtr = UnsafeRawBufferPointer(start: signature, count: signature.count)
-		return ptr.verify(digest, signature: sigPtr, key: key)
+		return withUnsafeBytes {
+			ptr in
+			signature.withUnsafeBytes {
+				ptr.verify(digest, signature: $0, key: key)
+			}
+		}
 	}
 	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector).
 	func encrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
-		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
-		let keyv = UnsafeRawBufferPointer(start: key, count: key.count)
-		let ivv = UnsafeRawBufferPointer(start: iv, count: iv.count)
-		guard let v = cipher.encrypt(sv, key: keyv, iv: ivv) else {
+		let vv = withUnsafeBytes {
+			sv in key.withUnsafeBytes {
+				key in iv.withUnsafeBytes { iv in
+					cipher.encrypt(sv, key: key, iv: iv)}}}
+		guard let v = vv else {
 			return nil
 		}
 		defer {
@@ -226,10 +222,11 @@ public extension Array where Element: Octal {
 	}
 	/// Decrypt this buffer using the indicated cipher, key an iv (initialization vector).
 	func decrypt(_ cipher: Cipher, key: [UInt8], iv: [UInt8]) -> [UInt8]? {
-		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
-		let keyv = UnsafeRawBufferPointer(start: key, count: key.count)
-		let ivv = UnsafeRawBufferPointer(start: iv, count: iv.count)
-		guard let v = cipher.decrypt(sv, key: keyv, iv: ivv) else {
+		let vv = withUnsafeBytes { sv in
+			key.withUnsafeBytes { key in
+				iv.withUnsafeBytes { iv in
+					cipher.decrypt(sv, key: key, iv: iv)}}}
+		guard let v = vv else {
 			return nil
 		}
 		defer {
@@ -244,10 +241,15 @@ public extension Array where Element: Octal {
 				 salt: [UInt8],
 				 keyIterations: Int = 2048,
 				 keyDigest: Digest = .md5) -> [UInt8]? {
-		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
-		let pwv = UnsafeRawBufferPointer(start: password, count: password.count)
-		let saltv = UnsafeRawBufferPointer(start: salt, count: salt.count)
-		guard let v = sv.encrypt(cipher, password: pwv, salt: saltv, keyIterations: keyIterations, keyDigest: keyDigest) else {
+		let vv = withUnsafeBytes { sv in
+			password.withUnsafeBytes { password in
+				salt.withUnsafeBytes { salt in
+					sv.encrypt(cipher,
+							   password: password,
+							   salt: salt,
+							   keyIterations: keyIterations,
+							   keyDigest: keyDigest)}}}
+		guard let v = vv else {
 			return nil
 		}
 		defer {
@@ -261,10 +263,15 @@ public extension Array where Element: Octal {
 				 salt: [UInt8],
 				 keyIterations: Int = 2048,
 				 keyDigest: Digest = .md5) -> [UInt8]? {
-		let sv = UnsafeRawBufferPointer(start: self, count: self.count)
-		let pwv = UnsafeRawBufferPointer(start: password, count: password.count)
-		let saltv = UnsafeRawBufferPointer(start: salt, count: salt.count)
-		guard let v = sv.decrypt(cipher, password: pwv, salt: saltv, keyIterations: keyIterations, keyDigest: keyDigest) else {
+		let vv = withUnsafeBytes { sv in
+			password.withUnsafeBytes { password in
+				salt.withUnsafeBytes { salt in
+					sv.decrypt(cipher,
+							   password: password,
+							   salt: salt,
+							   keyIterations: keyIterations,
+							   keyDigest: keyDigest)}}}
+		guard let v = vv else {
 			return nil
 		}
 		defer {
@@ -467,7 +474,7 @@ struct UTF8Encoding {
 	}
 	// Use a character sequence to create a String.
 	static func encode(bytes byts: [UTF8.CodeUnit]) -> String {
-		return encode(generator: UnsafeRawBufferPointer(start: UnsafeMutablePointer(mutating: byts), count: byts.count).makeIterator())
+		return byts.withUnsafeBytes { encode(generator: $0.makeIterator()) }
 	}
 	// Decode a String into an array of UInt8.
 	static func decode(string str: String) -> Array<UInt8> {

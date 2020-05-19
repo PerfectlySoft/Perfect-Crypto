@@ -186,14 +186,14 @@ public extension JWTCreator {
 public extension JWTVerifier {
 	func verify<T: Codable>(algo: JWT.Alg, key: Key, as: T.Type) throws -> T {
 		try verify(algo: algo, key: key)
-		return try JSONDecoder().decode(`as`, from: Data(bytes: payloadBytes))
+		return try JSONDecoder().decode(`as`, from: Data(payloadBytes))
 	}
 	func verify<T: Codable>(algo: JWT.Alg, key: String, as: T.Type) throws -> T {
 		try verify(algo: algo, key: key)
-		return try JSONDecoder().decode(`as`, from: Data(bytes: payloadBytes))
+		return try JSONDecoder().decode(`as`, from: Data(payloadBytes))
 	}
 	func decode<T: Codable>(as: T.Type) throws -> T {
-		return try JSONDecoder().decode(`as`, from: Data(bytes: payloadBytes))
+		return try JSONDecoder().decode(`as`, from: Data(payloadBytes))
 	}
 }
 
