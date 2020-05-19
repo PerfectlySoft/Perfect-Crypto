@@ -7,35 +7,14 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/PerfectlySoft/Perfect" target="_blank">
-        <img src="http://www.perfect.org/github/Perfect_GH_button_1_Star.jpg" alt="Star Perfect On Github" />
-    </a>  
-    <a href="http://stackoverflow.com/questions/tagged/perfect" target="_blank">
-        <img src="http://www.perfect.org/github/perfect_gh_button_2_SO.jpg" alt="Stack Overflow" />
-    </a>  
-    <a href="https://twitter.com/perfectlysoft" target="_blank">
-        <img src="http://www.perfect.org/github/Perfect_GH_button_3_twit.jpg" alt="Follow Perfect on Twitter" />
-    </a>  
-    <a href="http://perfect.ly" target="_blank">
-        <img src="http://www.perfect.org/github/Perfect_GH_button_4_slack.jpg" alt="Join the Perfect Slack" />
-    </a>
-</p>
-
-<p align="center">
     <a href="https://developer.apple.com/swift/" target="_blank">
-        <img src="https://img.shields.io/badge/Swift-4.1-orange.svg?style=flat" alt="Swift 4.1">
+        <img src="https://img.shields.io/badge/Swift-5.2-orange.svg?style=flat" alt="Swift 5.2">
     </a>
     <a href="https://developer.apple.com/swift/" target="_blank">
         <img src="https://img.shields.io/badge/Platforms-OS%20X%20%7C%20Linux%20-lightgray.svg?style=flat" alt="Platforms OS X | Linux">
     </a>
     <a href="http://perfect.org/licensing.html" target="_blank">
         <img src="https://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat" alt="License Apache">
-    </a>
-    <a href="http://twitter.com/PerfectlySoft" target="_blank">
-        <img src="https://img.shields.io/badge/Twitter-@PerfectlySoft-blue.svg?style=flat" alt="PerfectlySoft Twitter">
-    </a>
-    <a href="http://perfect.ly" target="_blank">
-        <img src="http://perfect.ly/badge.svg" alt="Slack Status">
     </a>
 </p>
 
@@ -46,7 +25,7 @@ Perfect 摘要、加密和编解码函数库
 请在您的Package.swift文件中增加下列依存关系：
 
 ```
-.Package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", majorVersion: 3)
+.package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", from: "4.0.0")
 ```
 
 ## Linux 编译说明
@@ -54,7 +33,7 @@ Perfect 摘要、加密和编解码函数库
 请确保您的系统上已经安装了 libssl-dev 函数库
 
 ```
-sudo apt-get install libssl-dev
+sudo apt-get install openssl libssl-dev
 ```
 
 ## 概述
@@ -143,8 +122,6 @@ public extension String {
 	/// 从指针构造字符串。指针可以不是零值结尾，而是由缓冲区长度决定转换内容长度
 	/// 输入内容无效则返回为空
 	init?(validatingUTF8 ptr: UnsafeRawBufferPointer?)
-	/// 从字符串内获得缓冲区指针。
-	func withBufferPointer<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result
 }
 
 public extension String {

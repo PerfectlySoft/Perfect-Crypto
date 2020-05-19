@@ -7,35 +7,14 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/PerfectlySoft/Perfect" target="_blank">
-        <img src="http://www.perfect.org/github/Perfect_GH_button_1_Star.jpg" alt="Star Perfect On Github" />
-    </a>  
-    <a href="http://stackoverflow.com/questions/tagged/perfect" target="_blank">
-        <img src="http://www.perfect.org/github/perfect_gh_button_2_SO.jpg" alt="Stack Overflow" />
-    </a>  
-    <a href="https://twitter.com/perfectlysoft" target="_blank">
-        <img src="http://www.perfect.org/github/Perfect_GH_button_3_twit.jpg" alt="Follow Perfect on Twitter" />
-    </a>  
-    <a href="http://perfect.ly" target="_blank">
-        <img src="http://www.perfect.org/github/Perfect_GH_button_4_slack.jpg" alt="Join the Perfect Slack" />
-    </a>
-</p>
-
-<p align="center">
     <a href="https://developer.apple.com/swift/" target="_blank">
-        <img src="https://img.shields.io/badge/Swift-4.1-orange.svg?style=flat" alt="Swift 4.1">
+        <img src="https://img.shields.io/badge/Swift-5.2-orange.svg?style=flat" alt="Swift 5.2">
     </a>
     <a href="https://developer.apple.com/swift/" target="_blank">
         <img src="https://img.shields.io/badge/Platforms-OS%20X%20%7C%20Linux%20-lightgray.svg?style=flat" alt="Platforms OS X | Linux">
     </a>
     <a href="http://perfect.org/licensing.html" target="_blank">
         <img src="https://img.shields.io/badge/License-Apache-lightgrey.svg?style=flat" alt="License Apache">
-    </a>
-    <a href="http://twitter.com/PerfectlySoft" target="_blank">
-        <img src="https://img.shields.io/badge/Twitter-@PerfectlySoft-blue.svg?style=flat" alt="PerfectlySoft Twitter">
-    </a>
-    <a href="http://perfect.ly" target="_blank">
-        <img src="http://perfect.ly/badge.svg" alt="Slack Status">
     </a>
 </p>
 
@@ -47,7 +26,7 @@ Digest, cipher and encoding support for Perfect.
 Add this project as a dependency in your Package.swift file.
 
 ```
-.package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", from: "3.0.0")
+.package(url: "https://github.com/PerfectlySoft/Perfect-Crypto.git", from: "4.0.0")
 ```
 
 ## Linux Build Notes
@@ -55,7 +34,7 @@ Add this project as a dependency in your Package.swift file.
 Ensure that you have installed libssl-dev. OpenSSL 1.0.2+ is required for this package. On Ubuntu 14 or some Debian distributions you will need to update your OpenSSL before this package will build.
 
 ```
-sudo apt-get install libssl-dev
+sudo apt-get install openssl libssl-dev
 ```
 
 ## Overview
@@ -150,8 +129,6 @@ public extension String {
 	/// The array's count indicates how many characters are to be converted.
 	/// Returns nil if the data is invalid.
 	init?(validatingUTF8 a: [UInt8])
-	/// Obtain a buffer pointer for the String's UTF8 characters.
-	func withBufferPointer<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result
 }
 
 public extension String {
