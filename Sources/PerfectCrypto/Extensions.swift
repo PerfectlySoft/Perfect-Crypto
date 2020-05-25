@@ -66,8 +66,8 @@ public extension File {
 		try chain.flush()
 		let validLength = digest.length
 		let ret = UnsafeMutableRawBufferPointer.allocate(byteCount: validLength, alignment: 0)
+		defer { ret.deallocate() }
 		guard try filter.get(ret) == validLength else {
-			ret.deallocate()
 			return []
 		}
 		return ret.map { $0 }
